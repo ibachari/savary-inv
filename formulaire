@@ -480,16 +480,22 @@ $("#reset").addEventListener("click", () => {
 
 /* ---------- lignes exportées ---------- */
 const HEAD = ["Date","Secteur","Produit / Référence","Service","Unités par colis","Nombre de colis","Unités hors colis","Quantité totale"];
+
 function rows(){
-  const out = [];
-  SECTORS.forEach(z => z.items.forEach(p => {
-    if (p.z1 !== z.c || !isCounted(p.id)) return;
+  return PRODUCTS.filter(p => isCounted(p.id)).map(p => {
     const r = rec(p.id);
-    out.push([dateEl.value, z.c, p.n, p.s, p.u, Number(r.c)||0, Number(r.l)||0, totalUnits(p)]);
-  }));
-  return out;
+    return [
+      dateEl.value,
+      p.z1 || "Autres",
+      p.n,
+      p.s,
+      p.u,
+      Number(r.c) || 0,
+      Number(r.l) || 0,
+      totalUnits(p)
+    ];
+  });
 }
-function toast(m){ const t = $("#toast"); t.textContent = m; t.classList.add("on"); setTimeout(() => t.classList.remove("on"), 2400); }
 
 /* ---------- menu export ---------- */
 $("#more").addEventListener("click", e => { e.stopPropagation(); $("#menu").classList.toggle("on"); });
