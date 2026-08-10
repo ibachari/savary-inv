@@ -225,11 +225,7 @@ const LEVELS = [
 ];
 
 let state = {}, sector = "A", level = "RDC", service = "", onlyTodo = false, query = "";
-let cfg = {
-  url: "https://script.google.com/macros/s/AKfycbyqObF3wRnKHwdRRQSTawKyDv5bTHyz_ek2a6B5PoGMQGaTyFpOvf__5IO7iFTcDtHaWg/exec",
-  token: "",
-  auto: true
-};
+let cfg = {url:"https://script.google.com/macros/s/AKfycbyqObF3wRnKHwdRRQSTawKyDv5bTHyz_ek2a6B5PoGMQGaTyFpOvf__5IO7iFTcDtHaWg/exec", token:"553171", auto:true};
 let sync = {status:"idle", at:null, msg:""};
 
 const $ = s => document.querySelector(s);
@@ -577,9 +573,32 @@ $("#c-test").addEventListener("click", async () => {
   $("#c-status").textContent = sync.status === "ok" ? "Réussi : " + sync.msg : "Échec — vérifiez l'URL, la clé et l'accès « Tout le monde ».";
 });
 
-renderServices();
-loadCfg();
-load();
+async function refreshDataFromSheets() {
+  if (!cfg.url) return;
+  try {
+    const res = await fetch(cfg.url + "?action=getData");
+    const data = await res.json();
+    if (data.ok && data.p && data.p.length) {
+      PRODUCTS.length = 0;
+      data.p.forEach(item => PRODUCTS.push(item));
+      ZONES.length = 0;
+      data.z.forEach(item => ZONES.push(item));
+      SECTORS.length = 0;
+      ZONES.map(z => ({...z, items: PRODUCTS.filter(p => p.z1 === z.c || p.z2 === z.c)}))
+             .filter(z => z.items.length)
+             .forEach(z => SECTORS.push(z));
+      renderServices();
+      render();
+    }
+  } catch (err) {
+    console.log("Utilisation des données locales");
+  }
+}
+
+loadCfg().then(() => {
+  load();
+  refreshDataFromSheets();
+});
 </script>
 </body>
 </html>
