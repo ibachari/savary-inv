@@ -547,10 +547,29 @@ async function push(silent){
     });
     const data = await res.json();
     if (!data.ok) throw new Error(data.error || "refus du script");
+    
     sync.status = "ok";
     sync.at = new Date().toLocaleTimeString("fr-FR", {hour:"2-digit", minute:"2-digit"});
     sync.msg = data.majSaisie + " lignes dans Saisie";
-    if (!silent) toast(r.length + " lignes envoyées dans le classeur");
+
+    // 1. Vibration mobile
+    if (navigator.vibrate) navigator.vibrate([80, 40, 120]);
+
+    // 2. Signal sonore
+    playSuccessSound();
+
+    // 3. Changement visuel sur le bouton
+    const pushBtn = $("#push");
+    if (pushBtn) {
+      pushBtn.textContent = `✓ ${r.length} lignes envoyées !`;
+      pushBtn.style.backgroundColor = "#2e7d32";
+      setTimeout(() => {
+        pushBtn.textContent = "Envoyer";
+        pushBtn.style.backgroundColor = "";
+      }, 3000);
+    }
+
+    if (!silent) toast("✅ " + r.length + " lignes enregistrées avec succès !");
   } catch (err) {
     sync.status = "err"; sync.msg = "envoi impossible";
     if (!silent) toast("Envoi impossible : " + err.message + ". Vérifiez l'URL et le déploiement.");
