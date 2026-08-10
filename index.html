@@ -225,7 +225,11 @@ const LEVELS = [
 ];
 
 let state = {}, sector = "A", level = "RDC", service = "", onlyTodo = false, query = "";
-let cfg = {url:"", token:"", auto:false};
+let cfg = {
+  url: "https://script.google.com/macros/s/AKfycbyqObF3wRnKHwdRRQSTawKyDv5bTHyz_ek2a6B5PoGMQGaTyFpOvf__5IO7iFTcDtHaWg/exec",
+  token: "",
+  auto: true
+};
 let sync = {status:"idle", at:null, msg:""};
 
 const $ = s => document.querySelector(s);
