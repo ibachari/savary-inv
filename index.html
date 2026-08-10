@@ -196,8 +196,8 @@ dialog::backdrop{background:rgba(18,33,29,.55)}
 <dialog id="cfg"><div class="dlg">
   <h2>Connexion Google Sheets</h2>
   <p>Colle l'adresse du script publié depuis le classeur d'inventaire (Extensions → Apps Script → Déployer → Application web).</p>
-  <label for="c-url">URL du script</label>
-  <input type="url" id="c-url" placeholder="https://script.google.com/macros/s/…/exec">
+ <label for="c-url">URL du script</label>
+<input type="url" id="c-url" readonly style="background:var(--paper); color:var(--ink-2)">
   <label for="c-tok">Clé partagée</label>
   <input type="text" id="c-tok" placeholder="la même que dans le script">
   <div class="cb"><input type="checkbox" id="c-auto"><label for="c-auto" style="margin:0;text-transform:none;letter-spacing:0;font-size:13.5px;font-weight:400;color:var(--ink)">Envoyer automatiquement pendant le comptage</label></div>
@@ -260,8 +260,18 @@ function save(){
   }, 700);
 }
 async function loadCfg(){
-  try { const v = await store.get("cfg:gsheet"); if (v) cfg = {...cfg, ...JSON.parse(v)}; } catch(e){}
-  $("#c-url").value = cfg.url; $("#c-tok").value = cfg.token; $("#c-auto").checked = !!cfg.auto;
+  try { 
+    const v = await store.get("cfg:gsheet"); 
+    if (v) {
+      const saved = JSON.parse(v);
+      cfg.token = saved.token || cfg.token;
+      cfg.auto = saved.auto !== undefined ? saved.auto : cfg.auto;
+      if (saved.url) cfg.url = saved.url;
+    } 
+  } catch(e){}
+  $("#c-url").value = cfg.url; 
+  $("#c-tok").value = cfg.token; 
+  $("#c-auto").checked = !!cfg.auto;
 }
 async function load(){
   state = {};
