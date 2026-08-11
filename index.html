@@ -381,7 +381,7 @@ function planReserve(){
     <g class="zone ${g.state}${sector==="E"?" sel":""}" data-z="E" ${g.tot?'tabindex="0" role="button"':""} aria-label="Zone E">
       <rect class="plain" x="20" y="22" width="300" height="208" rx="4"/>
       <text class="zc ink" x="170" y="128" style="font-size:26px">E</text>
-      <text class="zn ink" x="170" y="150">${g.tot ? g.done+"/"+g.tot+" comptés" : "aucun produit ici"}</text>
+      <text class="zn ink" x="170" y="100">${g.tot ? g.done+"/"+g.tot+" comptés" : "aucun produit ici"}</text>
     </g>
     ${rack("E-01", 168, 30, 52, 24)}
     <rect x="228" y="26" width="34" height="8" class="struct"/><text class="lbl sm" x="245" y="48">PORTE</text>
