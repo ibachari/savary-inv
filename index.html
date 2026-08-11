@@ -11,71 +11,73 @@
 :root{
   --ink:#12211d; --ink-2:#3d4a45; --paper:#e6e8e1; --card:#fff;
   --line:#ccd1c6; --line-2:#e2e5dc;
-  --accent:#0f6b57; --accent-soft:#d9ebe4; --accent-mid:#8fc3b2;
+  --accent:#0f6b57; --accent-soft:#d9ebe4;
   --signal:#b8690f; --signal-soft:#f7ecdc;
+  --alert:#b3261e; --alert-soft:#f9e2e0;
   --zero:#78837c; --r:6px; --pad:16px;
 }
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
-body{background:var(--paper);color:var(--ink);font-family:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:15px;line-height:1.45;-webkit-text-size-adjust:100%;padding-bottom:100px}
+body{background:var(--paper);color:var(--ink);font-family:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:15px;line-height:1.45;-webkit-text-size-adjust:100%;padding-bottom:104px}
 .wrap{max-width:860px;margin:0 auto;padding:0 var(--pad)}
 button{font:inherit;color:inherit;cursor:pointer}
 input,select{font:inherit;color:inherit}
 :focus-visible{outline:2.5px solid var(--accent);outline-offset:2px}
 
 .stickyhead{position:sticky;top:0;z-index:30;background:var(--paper);border-bottom:1px solid var(--line)}
-.top-in{display:flex;align-items:center;gap:12px;padding:10px var(--pad);max-width:860px;margin:0 auto;flex-wrap:wrap}
-.mark{font-family:"Barlow Condensed",Impact,sans-serif;font-weight:700;letter-spacing:.14em;text-transform:uppercase;font-size:15px;line-height:1;padding-right:12px;border-right:1px solid var(--line)}
+.top-in{display:flex;align-items:center;gap:10px;padding:9px var(--pad);max-width:860px;margin:0 auto;flex-wrap:wrap}
+.mark{font-family:"Barlow Condensed",Impact,sans-serif;font-weight:700;letter-spacing:.14em;text-transform:uppercase;font-size:15px;line-height:1;padding-right:10px;border-right:1px solid var(--line)}
 .mark span{display:block;font-size:9.5px;letter-spacing:.22em;color:var(--ink-2);font-weight:600}
 .field{display:flex;align-items:center;gap:8px}
 .field label{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-2);font-weight:600}
 input[type=date]{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:7px 9px;font-family:"IBM Plex Mono",monospace;font-size:14px;min-height:38px}
-select{min-height:38px;border:1px solid var(--line);border-radius:var(--r);background:var(--card);padding:7px 8px;font-size:13px}
+.who{margin-left:auto;display:flex;align-items:center;gap:7px;background:var(--ink);color:#fff;border:1px solid var(--ink);border-radius:99px;padding:6px 13px;min-height:38px;font-size:13px;font-weight:500}
+.who i{font-style:normal;font-family:"IBM Plex Mono",monospace;font-size:10px;color:#9fb3ab;letter-spacing:.1em;text-transform:uppercase}
 
-/* ---------- plan ---------- */
 .plan{background:var(--card);border:1px solid var(--line);border-radius:8px;margin:14px 0;overflow:hidden}
-.levels{display:flex;gap:0;border-bottom:1px solid var(--line-2);overflow-x:auto;scrollbar-width:none}
+.levels{display:flex;border-bottom:1px solid var(--line-2);overflow-x:auto;scrollbar-width:none}
 .levels::-webkit-scrollbar{display:none}
-.levels button{border:0;background:none;padding:11px 14px;font-size:12.5px;font-weight:500;white-space:nowrap;border-bottom:2.5px solid transparent;color:var(--ink-2)}
+.levels button{border:0;background:none;padding:11px 13px;font-size:12.5px;font-weight:500;white-space:nowrap;border-bottom:2.5px solid transparent;color:var(--ink-2)}
 .levels button[aria-pressed=true]{color:var(--ink);border-bottom-color:var(--accent);font-weight:600}
+.levels .num{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--ink-2)}
 .levels .sync{margin-left:auto;padding:0 12px;display:flex;align-items:center;gap:6px;font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--ink-2);white-space:nowrap;border:0;background:none}
 .dot{width:7px;height:7px;border-radius:50%;background:var(--line);flex:none}
-.dot.ok{background:var(--accent)}.dot.wait{background:var(--signal)}.dot.err{background:#b3261e}
+.dot.ok{background:var(--accent)}.dot.wait{background:var(--signal)}.dot.err{background:var(--alert)}
 svg.map{display:block;width:100%;height:auto;background:#f7f8f4}
 .zone rect{fill:var(--card);stroke:var(--line);stroke-width:1.5;transition:fill .2s}
 .zone{cursor:pointer}
-.zone .zc{font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:20px;fill:var(--ink);text-anchor:middle;dominant-baseline:middle}
+.zone .zc{font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:19px;fill:var(--ink);text-anchor:middle;dominant-baseline:middle}
 .zone .zn{font-family:"IBM Plex Mono",monospace;font-size:9px;fill:var(--ink-2);text-anchor:middle}
 .zone.todo rect{stroke-dasharray:4 3;stroke:var(--signal)}
 .zone.part rect{fill:var(--accent-soft)}
 .zone.full rect{fill:var(--accent);stroke:var(--accent)}
 .zone.full .zc,.zone.full .zn{fill:#fff}
-.zone.off rect{fill:#eeefe9;stroke:var(--line-2)}
-.zone.off .zc,.zone.off .zn{fill:#a6ada7}
+.zone.off rect{fill:#eef0ea;stroke:var(--line-2);stroke-dasharray:none}
+.zone.off .zc,.zone.off .zn{fill:#a9b0a9}
 .zone.off{cursor:default}
 .zone.sel rect{stroke:var(--ink);stroke-width:3.5;stroke-dasharray:none}
 .zone:hover:not(.off) rect{stroke:var(--ink)}
 .zone rect.plain{fill:none!important}
 .zone text.ink{fill:var(--ink)!important}
 .zone rect.shelf{stroke:var(--line)!important;stroke-width:1!important;stroke-dasharray:none!important}
-.struct{fill:#e0e2da;stroke:var(--line-2);stroke-width:1}
+.struct{fill:#dfe2da;stroke:var(--line-2);stroke-width:1}
 .lbl{font-family:"IBM Plex Mono",monospace;font-size:8.5px;fill:var(--ink-2);text-anchor:middle;letter-spacing:.06em}
 .lbl.sm{font-size:7.5px;fill:#8b948d}
 .wallline{stroke:var(--ink);stroke-width:2;fill:none}
-.plan-foot{display:flex;align-items:center;gap:10px;padding:9px 12px;border-top:1px solid var(--line-2);font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--ink-2);flex-wrap:wrap}
+.plan-foot{display:flex;align-items:center;gap:9px;padding:9px 12px;border-top:1px solid var(--line-2);font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--ink-2);flex-wrap:wrap}
 .key{display:flex;align-items:center;gap:5px}
 .sw{width:12px;height:12px;border-radius:2px;border:1.5px solid var(--line);flex:none}
 .sw.todo{border-style:dashed;border-color:var(--signal)}
 .sw.part{background:var(--accent-soft)}
 .sw.full{background:var(--accent);border-color:var(--accent)}
-.plan-foot .off-plan{margin-left:auto;border:1px solid var(--line);background:var(--paper);border-radius:var(--r);padding:5px 10px;font-family:inherit;font-size:10.5px}
-.plan-foot .off-plan[aria-pressed=true]{background:var(--ink);color:#fff;border-color:var(--ink)}
+.plan-foot .pill{border:1px solid var(--line);background:var(--paper);border-radius:99px;padding:5px 11px;font-family:inherit;font-size:10.5px}
+.plan-foot .pill[aria-pressed=true]{background:var(--ink);color:#fff;border-color:var(--ink)}
+.plan-foot .right{margin-left:auto;display:flex;gap:6px}
 
-/* ---------- plaque ---------- */
 .plate{position:relative;background:var(--ink);color:#fff;border-radius:8px;margin:0 0 14px;padding:14px 18px}
 .plate::before,.plate::after{content:"";position:absolute;top:13px;width:9px;height:9px;border-radius:50%;background:var(--paper);opacity:.3}
 .plate::before{left:14px}.plate::after{right:14px}
-.plate .code{font-family:"Barlow Condensed",Impact,sans-serif;font-weight:700;font-size:clamp(46px,14vw,70px);line-height:.86;margin:2px 0 0}
+.plate .code{font-family:"Barlow Condensed",Impact,sans-serif;font-weight:700;font-size:clamp(34px,11vw,58px);line-height:.9;margin:2px 0 0}
 .plate .lib{font-size:13px;color:#b9c8c2;margin-top:6px}
 .plate .lvl{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:#7f9990}
 .gauge{margin-top:12px;height:8px;border-radius:99px;background:#2b3b36;overflow:hidden}
@@ -91,21 +93,25 @@ svg.map{display:block;width:100%;height:auto;background:#f7f8f4}
 .toggle[aria-pressed=true]{background:var(--signal-soft);border-color:var(--signal);color:var(--signal)}
 
 .list{display:flex;flex-direction:column;gap:7px}
-.row{background:var(--card);border:1px solid var(--line-2);border-left:3px solid var(--signal);border-radius:var(--r);padding:11px 12px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.row{background:var(--card);border:1px solid var(--line-2);border-left:3px solid var(--signal);border-radius:var(--r);padding:11px 12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .row.counted{border-left-color:var(--accent)}
 .row.zeroed{border-left-color:var(--zero)}
+.row.moved{border-left-color:var(--alert)}
 .row .id{flex:1 1 180px;min-width:0}
 .row .name{font-weight:600;line-height:1.3}
 .row .meta{font-size:11.5px;color:var(--ink-2);margin-top:3px;font-family:"IBM Plex Mono",monospace}
 .row .meta em{font-style:normal;color:var(--signal)}
+.row .meta b{color:var(--alert);font-weight:600}
 .stepper{display:flex;align-items:center;gap:6px}
 .stepper button{width:44px;height:44px;border:1px solid var(--line);background:var(--paper);border-radius:var(--r);font-size:22px;line-height:1;font-family:"Barlow Condensed",sans-serif;display:grid;place-items:center}
 .stepper button:active{background:var(--ink);color:#fff}
-.qty{width:74px;height:44px;text-align:center;border:1.5px solid var(--line);border-radius:var(--r);font-family:"IBM Plex Mono",monospace;font-size:19px;font-weight:600;background:var(--card)}
+.qty{width:72px;height:44px;text-align:center;border:1.5px solid var(--line);border-radius:var(--r);font-family:"IBM Plex Mono",monospace;font-size:19px;font-weight:600;background:var(--card)}
 .qty:focus{border-color:var(--accent);outline:none;background:var(--accent-soft)}
-.zero{height:44px;padding:0 11px;border:1px solid var(--line);background:var(--paper);border-radius:var(--r);font-family:"IBM Plex Mono",monospace;font-size:12px}
+.zero,.flag{height:44px;padding:0 11px;border:1px solid var(--line);background:var(--paper);border-radius:var(--r);font-family:"IBM Plex Mono",monospace;font-size:12px}
 .row.zeroed .zero{background:var(--ink);border-color:var(--ink);color:#fff}
-.total{flex:0 0 100%;font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--ink-2);border-top:1px dashed var(--line-2);padding-top:7px;display:flex;justify-content:space-between;gap:10px;align-items:center}
+.flag{font-size:15px;line-height:1}
+.row.moved .flag{background:var(--alert);border-color:var(--alert);color:#fff}
+.total{flex:0 0 100%;font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--ink-2);border-top:1px dashed var(--line-2);padding-top:7px;display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}
 .total b{color:var(--ink);font-weight:600}
 .total .add{border:0;background:none;color:var(--accent);font-size:12px;font-family:"IBM Plex Mono",monospace;padding:4px 0;text-decoration:underline;text-underline-offset:3px}
 .loose{width:64px;height:32px;text-align:center;border:1px solid var(--line);border-radius:4px;font-family:"IBM Plex Mono",monospace;font-size:14px}
@@ -117,14 +123,14 @@ svg.map{display:block;width:100%;height:auto;background:#f7f8f4}
 .bottom .stat b{display:block;color:#fff;font-size:14px;font-weight:600}
 .act{border:1px solid #35463f;background:#1b2c27;color:#fff;border-radius:var(--r);min-height:44px;padding:0 14px;font-size:13px;font-weight:500;white-space:nowrap}
 .act.primary{background:var(--accent);border-color:var(--accent)}
-.menu{position:absolute;right:0;bottom:52px;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:8px;min-width:240px;padding:6px;box-shadow:0 10px 30px rgba(0,0,0,.22);display:none}
+.menu{position:absolute;right:0;bottom:52px;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:8px;min-width:250px;padding:6px;box-shadow:0 10px 30px rgba(0,0,0,.22);display:none}
 .menu.on{display:block}
 .menu button{display:block;width:100%;text-align:left;border:0;background:none;padding:11px 12px;border-radius:5px;font-size:14px}
 .menu button:hover{background:var(--paper)}
 .menu hr{border:0;border-top:1px solid var(--line-2);margin:5px 2px}
 
 dialog{border:1px solid var(--line);border-radius:10px;padding:0;max-width:min(480px,92vw);background:var(--card);color:var(--ink)}
-dialog::backdrop{background:rgba(18,33,29,.55)}
+dialog::backdrop{background:rgba(18,33,29,.6)}
 .dlg{padding:18px}
 .dlg h2{font-family:"Barlow Condensed",sans-serif;font-size:24px;margin:0 0 4px;letter-spacing:.02em}
 .dlg p{font-size:13px;color:var(--ink-2);margin:0 0 14px}
@@ -136,6 +142,15 @@ dialog::backdrop{background:rgba(18,33,29,.55)}
 .dlg .actions button{min-height:42px;padding:0 15px;border-radius:var(--r);border:1px solid var(--line);background:var(--paper);font-size:13.5px}
 .dlg .actions .go{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:500}
 .dlg .status{font-family:"IBM Plex Mono",monospace;font-size:11.5px;margin-top:12px;color:var(--ink-2)}
+.choices{display:flex;flex-direction:column;gap:8px}
+.choices button{display:flex;align-items:baseline;justify-content:space-between;gap:10px;width:100%;text-align:left;border:1px solid var(--line);background:var(--paper);border-radius:var(--r);padding:14px;font-size:16px;font-weight:500;min-height:52px}
+.choices button span{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-2);font-weight:400}
+.choices button[aria-pressed=true]{background:var(--ink);border-color:var(--ink);color:#fff}
+.choices button[aria-pressed=true] span{color:#9fb3ab}
+.zgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:8px}
+.zgrid button{border:1px solid var(--line);background:var(--paper);border-radius:var(--r);min-height:54px;font-family:"Barlow Condensed",sans-serif;font-size:20px;font-weight:700}
+.zgrid button.att{border-color:var(--accent);color:var(--accent)}
+.zgrid button[aria-pressed=true]{background:var(--alert);border-color:var(--alert);color:#fff}
 .toast{position:fixed;left:50%;transform:translateX(-50%) translateY(14px);bottom:82px;background:var(--ink);color:#fff;border:1px solid #35463f;border-radius:var(--r);padding:10px 16px;font-size:13px;z-index:60;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;max-width:88vw;text-align:center}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 .foot{font-size:11.5px;color:var(--ink-2);margin:18px 0 4px;font-family:"IBM Plex Mono",monospace}
@@ -149,7 +164,7 @@ dialog::backdrop{background:rgba(18,33,29,.55)}
 <div class="stickyhead"><div class="top-in">
   <div class="mark">Inventaire<span>Maison Savary</span></div>
   <div class="field"><label for="d">Date</label><input type="date" id="d"></div>
-  <div class="field" style="margin-left:auto"><label for="svc">Service</label><select id="svc"></select></div>
+  <button class="who" id="who"><i>Service</i><span id="who-l">—</span></button>
 </div></div>
 
 <main class="wrap">
@@ -160,13 +175,16 @@ dialog::backdrop{background:rgba(18,33,29,.55)}
       <span class="key"><i class="sw todo"></i>à compter</span>
       <span class="key"><i class="sw part"></i>en cours</span>
       <span class="key"><i class="sw full"></i>terminé</span>
-      <button class="off-plan" id="autres" aria-pressed="false">Hors plan · Autres</button>
+      <span class="right">
+        <button class="pill" id="allzones" aria-pressed="true">Toutes les zones</button>
+        <button class="pill" id="autres" aria-pressed="false">Hors plan</button>
+      </span>
     </div>
   </section>
 
   <section class="plate">
     <div class="lvl" id="p-lvl">—</div>
-    <h1 class="code" id="p-code">A</h1>
+    <h1 class="code" id="p-code">—</h1>
     <div class="lib" id="p-lib">—</div>
     <div class="gauge"><div id="p-bar"></div></div>
     <div class="tally"><span id="p-count">0 / 0</span><span id="p-units">0 unités</span></div>
@@ -182,22 +200,39 @@ dialog::backdrop{background:rgba(18,33,29,.55)}
 </main>
 
 <div class="bottom"><div class="bottom-in">
-  <div class="stat"><b id="b-main">0 / 109 produits comptés</b><span id="b-sub">—</span></div>
+  <div class="stat"><b id="b-main">0 / 0 produits comptés</b><span id="b-sub">—</span></div>
   <button class="act" id="more">Exporter ▾</button>
   <button class="act primary" id="push">Envoyer</button>
   <div class="menu" id="menu">
     <button data-m="copy">Copier pour Google Sheets</button>
     <button data-m="csv">Télécharger le CSV</button>
+    <button data-m="pull">Actualiser les produits depuis le classeur</button>
     <hr>
     <button data-m="cfg">Connexion Google Sheets…</button>
   </div>
 </div></div>
 
+<dialog id="dsvc"><div class="dlg">
+  <h2>Qui compte ?</h2>
+  <p>Choisissez votre service : le plan et la liste ne montreront que vos produits. Vous pourrez toujours ouvrir une zone précise en cliquant dessus.</p>
+  <div class="choices" id="svc-list"></div>
+</div></dialog>
+
+<dialog id="dzone"><div class="dlg">
+  <h2>Zone réelle du produit</h2>
+  <p id="dz-p">—</p>
+  <div class="zgrid" id="dz-grid"></div>
+  <div class="actions">
+    <button id="dz-clear">Il est à sa place</button>
+    <button id="dz-close">Fermer</button>
+  </div>
+</div></dialog>
+
 <dialog id="cfg"><div class="dlg">
   <h2>Connexion Google Sheets</h2>
-  <p>Colle l'adresse du script publié depuis le classeur d'inventaire (Extensions → Apps Script → Déployer → Application web).</p>
- <label for="c-url">URL du script</label>
-<input type="url" id="c-url" readonly style="background:var(--paper); color:var(--ink-2)">
+  <p>Adresse du script publié depuis le classeur (Extensions → Apps Script → Déployer → Application web). Les comptages alimentent Saisie mobile, Archive, Bilan, Récap et la feuille Produits.</p>
+  <label for="c-url">URL du script</label>
+  <input type="url" id="c-url" placeholder="https://script.google.com/macros/s/…/exec">
   <label for="c-tok">Clé partagée</label>
   <input type="text" id="c-tok" placeholder="la même que dans le script">
   <div class="cb"><input type="checkbox" id="c-auto"><label for="c-auto" style="margin:0;text-transform:none;letter-spacing:0;font-size:13.5px;font-weight:400;color:var(--ink)">Envoyer automatiquement pendant le comptage</label></div>
@@ -212,10 +247,28 @@ dialog::backdrop{background:rgba(18,33,29,.55)}
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
-const DATA = {"p": [{"id": 0, "n": "Bol rond kraft 750ml 150x60mm", "s": "Usine 16", "z1": "A", "z2": null, "u": 750}, {"id": 1, "n": "Boîte triangle kraft", "s": "Usine 16", "z1": "A", "z2": null, "u": 500}, {"id": 2, "n": "Couvercle Ramequin pulpe blanc 30CC", "s": "Usine 16", "z1": "A", "z2": null, "u": 50}, {"id": 3, "n": "Ramequin pulpe blanc 30CC", "s": "Usine 16", "z1": "A", "z2": null, "u": 75}, {"id": 4, "n": "CORNIERE 160", "s": "Emballage", "z1": "B", "z2": "E", "u": 50}, {"id": 5, "n": "D20 IMPRIME", "s": "Emballage", "z1": "B", "z2": "E", "u": 336}, {"id": 6, "n": "Film étirable 270x0,45", "s": "Emballage", "z1": "Autres", "z2": "E", "u": 11}, {"id": 7, "n": "Fond Carton LX1708RKB 2 parts", "s": "Usine 16", "z1": "A", "z2": null, "u": 240}, {"id": 8, "n": "Fond Carton LX995CKBC1FPR 1 part", "s": "Usine 16", "z1": "A", "z2": null, "u": 880}, {"id": 9, "n": "GALLIA A13 IMPRIME", "s": "Emballage", "z1": "A", "z2": "E", "u": 275}, {"id": 10, "n": "GALLIAA12 - A12", "s": "Emballage", "z1": "A", "z2": "E", "u": 20}, {"id": 11, "n": "HOUSSE ECHELLE GM77X37.5X190 LOT X25", "s": "Prod", "z1": "A", "z2": null, "u": 100}, {"id": 12, "n": "Packaging individuel triangulaire (500unités)", "s": "Usine 16", "z1": "A", "z2": null, "u": 200}, {"id": 13, "n": "Papier.CUISSON 340x170 BLANC intercalaire", "s": "Emballage", "z1": "A", "z2": null, "u": 500}, {"id": 14, "n": "Poches jetable", "s": "Hygiène", "z1": "A", "z2": null, "u": 500}, {"id": 15, "n": "SAC CROISSANT 103 K BRUN NUAGE X1000", "s": "Usine 16", "z1": "A", "z2": null, "u": 1000}, {"id": 16, "n": "Sachet pain / Balluchons chevrons", "s": "Usine 16", "z1": "A", "z2": null, "u": 75}, {"id": 17, "n": "Sachet à baguette", "s": "Usine 16", "z1": "A", "z2": null, "u": 500}, {"id": 18, "n": "Tabliers blancs", "s": "Hygiène", "z1": "A", "z2": null, "u": 100}, {"id": 19, "n": "Bobine papier calage", "s": "Emballage", "z1": "E", "z2": null, "u": 1}, {"id": 20, "n": "COUV GOBELET 20/30CL PULPE BLC", "s": "Usine 16", "z1": "C", "z2": null, "u": 1000}, {"id": 21, "n": "GALLIAA10 - Carton A10", "s": "Emballage", "z1": "B", "z2": null, "u": 1}, {"id": 22, "n": "GOBELET CARTON BRUN 24CL DIAM 80MM H 92MM COLIS DE 1000", "s": "Usine 16", "z1": "B", "z2": null, "u": 1000}, {"id": 23, "n": "Boîte pâtissière 18x8", "s": "Usine 16", "z1": "C", "z2": "CC", "u": 50}, {"id": 24, "n": "Boîte pâtissière 29x8", "s": "Usine 16", "z1": "C", "z2": "CC", "u": 25}, {"id": 25, "n": "Moule Nordia 2 pers (1400 pcs)", "s": "Prod", "z1": "C", "z2": "CC", "u": 1400}, {"id": 26, "n": "Flacon Twist", "s": "Usine 16", "z1": "C", "z2": "CC", "u": 100}, {"id": 27, "n": "BOUTEIL.PET RONDE TRANSP 0,25L x440 unités / colis", "s": "Usine 16", "z1": "C", "z2": "CC", "u": 440}, {"id": 28, "n": "Papier ingraissable brun 25x33cm", "s": "Usine 16", "z1": "C", "z2": "CC", "u": 500}, {"id": 29, "n": "SAC FD/CAISSE SOUFFLET PEHD 12μ 750+200/200X650MM COLIS DE 500 EN LIASSE", "s": "Emballage", "z1": "C", "z2": "CC", "u": 100}, {"id": 30, "n": "SAC KRAFT BRUN POIGNEES PLATES 260X200X280 MM", "s": "Usine 16", "z1": "C", "z2": "CC", "u": 250}, {"id": 31, "n": "Sac traiteur blanc36,5 x 32 x 33", "s": "Usine 16", "z1": "C", "z2": "CC", "u": 200}, {"id": 32, "n": "Couvercle APET DS09H65 1 part", "s": "Usine 16", "z1": "A", "z2": null, "u": 880}, {"id": 33, "n": "Couvercle APET DS1710H65 2 parts", "s": "Usine 16", "z1": "A", "z2": null, "u": 240}, {"id": 34, "n": "Couvercle flacon twist", "s": "Usine 16", "z1": "A", "z2": null, "u": 100}, {"id": 35, "n": "Moule baronnet", "s": "Prod", "z1": "D", "z2": "DD", "u": 175}, {"id": 36, "n": "Moule Nordia 12 pers (180/carton)", "s": "Prod", "z1": "D", "z2": "DD", "u": 180}, {"id": 37, "n": "Moule Nordia 6 pers (720/carton)", "s": "Prod", "z1": "D", "z2": "DD", "u": 720}, {"id": 38, "n": "Moule octo 145", "s": "Prod", "z1": "D", "z2": "DD", "u": 400}, {"id": 39, "n": "Moule octopuce 110", "s": "Prod", "z1": "D", "z2": "DD", "u": 400}, {"id": 40, "n": "Moule rond nord optima", "s": "Prod", "z1": "D", "z2": "DD", "u": 720}, {"id": 41, "n": "Moules PIE ronds GOLDEN diamètre 85 x 32 mm ht (Diamètre du haut 106 mm)", "s": "Prod", "z1": "D", "z2": "DD", "u": 1800}, {"id": 42, "n": "Papier sulfurisé siliconé 41gr 2 faces 60 x 40cm - Ramette de 500 feuilles molto/crokus", "s": "Prod", "z1": "D", "z2": "DD", "u": 500}, {"id": 43, "n": "TPH 106 H 32 GOLDEN (réf. S00107)", "s": "Prod", "z1": "D", "z2": "DD", "u": 1800}, {"id": 44, "n": "TPH 80 H 34 GOLDEN (réf. S00080)", "s": "Prod", "z1": "D", "z2": "DD", "u": 1800}, {"id": 45, "n": "BP18X8 - Boîte pâtissière logoté 18x8 (SAVARY)", "s": "Usine 16", "z1": "CC", "z2": "C", "u": 250}, {"id": 46, "n": "BP18X8 - Boîte pâtissière logoté 29x8 (SAVARY)", "s": "Usine 16", "z1": "CC", "z2": "C", "u": 75}, {"id": 47, "n": "GOBELET 10/12CL BRUN 100X20", "s": "Usine 16", "z1": "CC", "z2": "C", "u": 60}, {"id": 48, "n": "GOBELET 24CL BRUN 50x20", "s": "Usine 16", "z1": "CC", "z2": "C", "u": 50}, {"id": 49, "n": "Film 2x450 (machine)", "s": "Hygiène", "z1": "CC", "z2": "C", "u": 24}, {"id": 50, "n": "Film 2x250 (machine)", "s": "Hygiène", "z1": "CC", "z2": "C", "u": 24}, {"id": 51, "n": "Moule bois individuel cocotte 150 ML", "s": "Prod", "z1": "DD", "z2": "D", "u": 360}, {"id": 52, "n": "BOITE PATISSIERE LEBHAR 18X15 (SAVARY)", "s": "Usine 16", "z1": "CC", "z2": "C", "u": 300}, {"id": 53, "n": "BOITE PATISSIERE LEBHAR 23X8 (SAVARY)", "s": "Usine 16", "z1": "CC", "z2": "C", "u": 466}, {"id": 54, "n": "Etiquette 100x150", "s": "Emballage", "z1": "E", "z2": null, "u": 500}, {"id": 55, "n": "Etiquette 70 x 80 mm", "s": "Emballage", "z1": "E", "z2": null, "u": 10000}, {"id": 56, "n": "Etiquette 70x40", "s": "Emballage", "z1": "E", "z2": null, "u": 37500}, {"id": 57, "n": "Plaque or focaccia 150gr 12x18cm", "s": "Emballage", "z1": "E", "z2": null, "u": 200}, {"id": 58, "n": "ROND SIMPLE FACE 18CM OR/NOIR - PQT 100", "s": "Emballage", "z1": "E", "z2": null, "u": 100}, {"id": 59, "n": "ROND SIMPLE FACE 22CM OR/NOIR - PQT 100", "s": "Emballage", "z1": "E", "z2": null, "u": 200}, {"id": 60, "n": "ROND SIMPLE FACE 26CM OR/NOIR - PQT 100", "s": "Emballage", "z1": "E", "z2": null, "u": 100}, {"id": 61, "n": "Ruban adhésif DOUCETTYS", "s": "Emballage", "z1": "E", "z2": null, "u": 36}, {"id": 62, "n": "Ruban adhésif SAVARY", "s": "Emballage", "z1": "E", "z2": null, "u": 36}, {"id": 63, "n": "blouse plp 40g blanc XL", "s": "Hygiène", "z1": "F", "z2": null, "u": 50}, {"id": 64, "n": "Brosse à cuve fibres dures alimentaire PLP 20,5cm bleu Vikan", "s": "Hygiène", "z1": "F", "z2": null, "u": 1}, {"id": 65, "n": "Cache-barbe PLP 16g/m² blanc Paredes( Colis de 10 sachets de 100)", "s": "Hygiène", "z1": "F", "z2": null, "u": 1000}, {"id": 66, "n": "Charlotte blanche à clip accordéon Ø 48cm Non tissé 10X100 - Ct. 1000", "s": "Hygiène", "z1": "F", "z2": null, "u": 1000}, {"id": 67, "n": "Nettoyant vaisselle machine eau dure Ecolabel Paredes Lava Wash HW bidon de 20L (1 bidon)", "s": "Hygiène", "z1": "F", "z2": null, "u": 1}, {"id": 68, "n": "Traitement des bacs à graisse et canalisations Paredes Expert Ciba Trap bidon de 5L (Colis de 2 bidons de 5L)", "s": "Hygiène", "z1": "F", "z2": null, "u": 1}, {"id": 69, "n": "Combinaison de travail (Colis de 25)", "s": "Hygiène", "z1": "F", "z2": null, "u": 25}, {"id": 70, "n": "DETERG DESINF CIBA BIONYM 21KG", "s": "Hygiène", "z1": "F", "z2": null, "u": 1}, {"id": 71, "n": "Décapant four Ecocert Paredes Ciba Dkap bidon de 5L", "s": "Hygiène", "z1": "F", "z2": null, "u": 1}, {"id": 72, "n": "Détartrant cuisine Ecocert Paredes Ciba Dkal bidon de 5L (colis de 2 bidons)", "s": "Hygiène", "z1": "F", "z2": null, "u": 1}, {"id": 73, "n": "Eponge inox double face Tampel (lot de 5)", "s": "Hygiène", "z1": "F", "z2": null, "u": 5}, {"id": 74, "n": "Eponge spirale Inox 60g - Sachet de 10", "s": "Hygiène", "z1": "F", "z2": null, "u": 50}, {"id": 75, "n": "Essuyage dévidage central Paredes blanc 450 formats 18,2 x 30 cm Ecolabel ( colis de 6)", "s": "Hygiène", "z1": "F", "z2": null, "u": 9}, {"id": 76, "n": "Gant à usage unique nitrile Paredes Ecofeeds bleu lavande non poudré taille L(6/7) (colis de 10 boites de 200)", "s": "Hygiène", "z1": "F", "z2": null, "u": 200}, {"id": 77, "n": "Gant à usage unique nitrile Paredes Ecofeeds bleu lavande non poudré taille S(Colis de 10 boites de 200)", "s": "Hygiène", "z1": "F", "z2": null, "u": 200}, {"id": 78, "n": "Gant à usage unique nitrile Paredes Ecofeeds bleu lavande non poudré taille XL (6/7) (colis de 10 boites de 200)", "s": "Hygiène", "z1": "F", "z2": null, "u": 200}, {"id": 79, "n": "Gant à usage unique nitrile Paredes Ecofeeds noir non poudré taille L (8/9)", "s": "Hygiène", "z1": "F", "z2": null, "u": 100}, {"id": 80, "n": "Gant à usage unique nitrile Paredes Ecofeeds noir non poudré taille S (8/9)", "s": "Hygiène", "z1": "F", "z2": null, "u": 100}, {"id": 81, "n": "Gant à usage unique nitrile PROP Ecofeeds bleu lavande non poudré M (colis de 10 boites de 200)", "s": "Hygiène", "z1": "F", "z2": null, "u": 200}, {"id": 82, "n": "GHA Gel hydroalcoolique DAILYK PREMIUM Flacon pompe 500ml", "s": "Hygiène", "z1": "F", "z2": null, "u": 18}, {"id": 83, "n": "Kit visiteur (1 blouse, 1 charlotte, 1 masque, 1 paire de surchaussures) Hopen Taille Unique (lot de 100)", "s": "Hygiène", "z1": "F", "z2": null, "u": 100}, {"id": 84, "n": "LAVETTE AJOURÉE Non tissée ajourée 35x50cm - Sachet de 25", "s": "Hygiène", "z1": "F", "z2": null, "u": 25}, {"id": 85, "n": "Lingettes désinfectantes mains et surfaces Laboratoire Garcin Acti'septyl DSR (Colis de 12 boites de 120)", "s": "Hygiène", "z1": "F", "z2": null, "u": 120}, {"id": 86, "n": "Liquide vaisselle plonge manuelle citron Paredes Access flacon de 1L", "s": "Hygiène", "z1": "F", "z2": null, "u": 1}, {"id": 87, "n": "Lotion désinfectante Paredes Medi Asept recharge de 1400ml (Colis de 4 recharges de 1400ml)", "s": "Hygiène", "z1": "F", "z2": null, "u": 1}, {"id": 88, "n": "Manche alimentaire PLP 145cm bleu Maine Brosserie (1)", "s": "Hygiène", "z1": "F", "z2": null, "u": 1}, {"id": 89, "n": "Masque médical type II ( 1 boite de 60)", "s": "Hygiène", "z1": "F", "z2": null, "u": 60}, {"id": 90, "n": "Mocassin de sécurité Bicap Cassini S3 SRC noir pointure 39 (1 paire)", "s": "Hygiène", "z1": "F", "z2": null, "u": 2}, {"id": 91, "n": "Nettoyant vitres IJN pulvérisateur de 750ml (Colis de 12 pulvérisateurs)", "s": "Hygiène", "z1": "F", "z2": null, "u": 5}, {"id": 92, "n": "Papier toilette rouleau géant Jumbo blanc 380m 8,3 x 17,5 cm Ecolabel Paredes (colis de 6 rouleaux)", "s": "Hygiène", "z1": "F", "z2": null, "u": 6}, {"id": 93, "n": "Pastilles Chlorées (1 colis de 25kg)", "s": "Hygiène", "z1": "F", "z2": null, "u": 4}, {"id": 94, "n": "RACLETTE SOL MOUSS 60CM BLEU (1)", "s": "Hygiène", "z1": "F", "z2": null, "u": 6}, {"id": 95, "n": "Sac Poubelle 30L", "s": "Hygiène", "z1": "F", "z2": null, "u": 500}, {"id": 96, "n": "Sac poubelle PE BD 150L noir 68µ PAREDES (Colis de 10 rouleaux de 10)", "s": "Hygiène", "z1": "F", "z2": null, "u": 10}, {"id": 97, "n": "Surchaussure anti-glisse Tiger grip avec embout aluminium/titane caoutchouc noir taille L (41/44)", "s": "Hygiène", "z1": "F", "z2": null, "u": 2}, {"id": 98, "n": "Surchaussure anti-glisse Tiger grip avec embout aluminium/titane caoutchouc noir taille M (37/40)", "s": "Hygiène", "z1": "F", "z2": null, "u": 1}, {"id": 99, "n": "Surchaussure anti-glisse Tiger grip avec embout aluminium/titane caoutchouc noir taille S (34/36)", "s": "Hygiène", "z1": "F", "z2": null, "u": 1}, {"id": 100, "n": "Tablette linge désinfectante Paredes Neli Desitabs seau de 125x25g", "s": "Hygiène", "z1": "F", "z2": null, "u": 1}, {"id": 101, "n": "BOMBE A GRAISSE 600MLGRAISS VIT", "s": "Boulangerie", "z1": "Autres", "z2": null, "u": 1}, {"id": 102, "n": "Moule Nordia 1 pers (2520u)", "s": "Prod", "z1": "Autres", "z2": null, "u": 2520}, {"id": 103, "n": "Moule marquis", "s": "Prod", "z1": "Autres", "z2": null, "u": 200}, {"id": 104, "n": "Moule pani-tourte - H 5 cm - Ø 16cm ( fabrication artisanal)", "s": "Prod", "z1": "Autres", "z2": null, "u": 150}, {"id": 105, "n": "Moule pani-tourte - H 5 cm - Ø 16cm atelier papille", "s": "Prod", "z1": "Autres", "z2": null, "u": 150}, {"id": 106, "n": "Moule pani-tourte - H 5cm - Ø 16cm", "s": "Prod", "z1": "Autres", "z2": null, "u": 150}, {"id": 107, "n": "Moule pani-tourte - H 5cm - Ø 20cm", "s": "Prod", "z1": "Autres", "z2": null, "u": 90}, {"id": 108, "n": "Moule pani-tourte - H 5cm - Ø 24cm", "s": "Prod", "z1": "Autres", "z2": null, "u": 60}], "z": [{"c": "A", "l": "RDC — rack mur gauche", "n": "RDC"}, {"c": "B", "l": "RDC — bloc central, allée gauche", "n": "RDC"}, {"c": "C", "l": "RDC — bloc central, allée droite", "n": "RDC"}, {"c": "D", "l": "RDC — rack mur droit", "n": "RDC"}, {"c": "AA", "l": "R+1 — au-dessus de la zone A", "n": "R+1"}, {"c": "BB", "l": "R+1 — au-dessus de la zone B", "n": "R+1"}, {"c": "CC", "l": "R+1 — au-dessus de la zone C", "n": "R+1"}, {"c": "DD", "l": "R+1 — au-dessus de la zone D", "n": "R+1"}, {"c": "E", "l": "Réserve — en dessous du rez-de-chaussée", "n": "Réserve"}, {"c": "F", "l": "Salle Hygiène Paredes", "n": "F"}, {"c": "Autres", "l": "À classer — emplacement à préciser", "n": "Autres"}]};
-const PRODUCTS = DATA.p, ZONES = DATA.z;
-const SECTORS = ZONES.map(z => ({...z, items: PRODUCTS.filter(p => p.z1 === z.c || p.z2 === z.c)})).filter(z => z.items.length);
-const SEC = Object.fromEntries(SECTORS.map(z => [z.c, z]));
+const DATA = {"p": [{"n": "Bol rond kraft 750ml 150x60mm", "s": "Usine 16", "z1": "A", "z2": null, "u": 750}, {"n": "Boîte triangle kraft", "s": "Usine 16", "z1": "A", "z2": null, "u": 500}, {"n": "Couvercle Ramequin pulpe blanc 30CC", "s": "Usine 16", "z1": "A", "z2": null, "u": 50}, {"n": "Ramequin pulpe blanc 30CC", "s": "Usine 16", "z1": "A", "z2": null, "u": 75}, {"n": "CORNIERE 160", "s": "Emballage", "z1": "B", "z2": "E", "u": 50}, {"n": "D20 IMPRIME", "s": "Emballage", "z1": "B", "z2": "E", "u": 336}, {"n": "Film étirable 270x0,45", "s": "Emballage", "z1": "Autres", "z2": "E", "u": 11}, {"n": "Fond Carton LX1708RKB 2 parts", "s": "Usine 16", "z1": "A", "z2": null, "u": 240}, {"n": "Fond Carton LX995CKBC1FPR 1 part", "s": "Usine 16", "z1": "A", "z2": null, "u": 880}, {"n": "GALLIA A13 IMPRIME", "s": "Emballage", "z1": "A", "z2": "E", "u": 275}, {"n": "GALLIAA12 - A12", "s": "Emballage", "z1": "A", "z2": "E", "u": 20}, {"n": "HOUSSE ECHELLE GM77X37.5X190 LOT X25", "s": "Prod", "z1": "A", "z2": null, "u": 100}, {"n": "Packaging individuel triangulaire (500unités)", "s": "Usine 16", "z1": "A", "z2": null, "u": 200}, {"n": "Papier.CUISSON 340x170 BLANC intercalaire", "s": "Emballage", "z1": "A", "z2": null, "u": 500}, {"n": "Poches jetable", "s": "Hygiène", "z1": "A", "z2": null, "u": 500}, {"n": "SAC CROISSANT 103 K BRUN NUAGE X1000", "s": "Usine 16", "z1": "A", "z2": null, "u": 1000}, {"n": "Sachet pain / Balluchons chevrons", "s": "Usine 16", "z1": "A", "z2": null, "u": 75}, {"n": "Sachet à baguette", "s": "Usine 16", "z1": "A", "z2": null, "u": 500}, {"n": "Tabliers blancs", "s": "Hygiène", "z1": "A", "z2": null, "u": 100}, {"n": "Bobine papier calage", "s": "Emballage", "z1": "E", "z2": null, "u": 1}, {"n": "COUV GOBELET 20/30CL PULPE BLC", "s": "Usine 16", "z1": "C", "z2": null, "u": 1000}, {"n": "GALLIAA10 - Carton A10", "s": "Emballage", "z1": "B", "z2": null, "u": 1}, {"n": "GOBELET CARTON BRUN 24CL DIAM 80MM H 92MM COLIS DE 1000", "s": "Usine 16", "z1": "B", "z2": null, "u": 1000}, {"n": "Boîte pâtissière 18x8", "s": "Usine 16", "z1": "C", "z2": "CC", "u": 50}, {"n": "Boîte pâtissière 29x8", "s": "Usine 16", "z1": "C", "z2": "CC", "u": 25}, {"n": "Moule Nordia 2 pers (1400 pcs)", "s": "Prod", "z1": "C", "z2": "CC", "u": 1400}, {"n": "Flacon Twist", "s": "Usine 16", "z1": "C", "z2": "CC", "u": 100}, {"n": "BOUTEIL.PET RONDE TRANSP 0,25L x440 unités / colis", "s": "Usine 16", "z1": "C", "z2": "CC", "u": 440}, {"n": "Papier ingraissable brun 25x33cm", "s": "Usine 16", "z1": "C", "z2": "CC", "u": 500}, {"n": "SAC FD/CAISSE SOUFFLET PEHD 12μ 750+200/200X650MM COLIS DE 500 EN LIASSE", "s": "Emballage", "z1": "C", "z2": "CC", "u": 100}, {"n": "SAC KRAFT BRUN POIGNEES PLATES 260X200X280 MM", "s": "Usine 16", "z1": "C", "z2": "CC", "u": 250}, {"n": "Sac traiteur blanc36,5 x 32 x 33", "s": "Usine 16", "z1": "C", "z2": "CC", "u": 200}, {"n": "Couvercle APET DS09H65 1 part", "s": "Usine 16", "z1": "A", "z2": null, "u": 880}, {"n": "Couvercle APET DS1710H65 2 parts", "s": "Usine 16", "z1": "A", "z2": null, "u": 240}, {"n": "Couvercle flacon twist", "s": "Usine 16", "z1": "A", "z2": null, "u": 100}, {"n": "Moule baronnet", "s": "Prod", "z1": "D", "z2": "DD", "u": 175}, {"n": "Moule Nordia 12 pers (180/carton)", "s": "Prod", "z1": "D", "z2": "DD", "u": 180}, {"n": "Moule Nordia 6 pers (720/carton)", "s": "Prod", "z1": "D", "z2": "DD", "u": 720}, {"n": "Moule octo 145", "s": "Prod", "z1": "D", "z2": "DD", "u": 400}, {"n": "Moule octopuce 110", "s": "Prod", "z1": "D", "z2": "DD", "u": 400}, {"n": "Moule rond nord optima", "s": "Prod", "z1": "D", "z2": "DD", "u": 720}, {"n": "Moules PIE ronds GOLDEN diamètre 85 x 32 mm ht (Diamètre du haut 106 mm)", "s": "Prod", "z1": "D", "z2": "DD", "u": 1800}, {"n": "Papier sulfurisé siliconé 41gr 2 faces 60 x 40cm - Ramette de 500 feuilles molto/crokus", "s": "Prod", "z1": "D", "z2": "DD", "u": 500}, {"n": "TPH 106 H 32 GOLDEN (réf. S00107)", "s": "Prod", "z1": "D", "z2": "DD", "u": 1800}, {"n": "TPH 80 H 34 GOLDEN (réf. S00080)", "s": "Prod", "z1": "D", "z2": "DD", "u": 1800}, {"n": "BP18X8 - Boîte pâtissière logoté 18x8 (SAVARY)", "s": "Usine 16", "z1": "CC", "z2": "C", "u": 250}, {"n": "BP18X8 - Boîte pâtissière logoté 29x8 (SAVARY)", "s": "Usine 16", "z1": "CC", "z2": "C", "u": 75}, {"n": "GOBELET 10/12CL BRUN 100X20", "s": "Usine 16", "z1": "CC", "z2": "C", "u": 60}, {"n": "GOBELET 24CL BRUN 50x20", "s": "Usine 16", "z1": "CC", "z2": "C", "u": 50}, {"n": "Film 2x450 (machine)", "s": "Emballage", "z1": "CC", "z2": "C", "u": 24}, {"n": "Film 2x250 (machine)", "s": "Emballage", "z1": "CC", "z2": "C", "u": 24}, {"n": "Moule bois individuel cocotte 150 ML", "s": "Prod", "z1": "DD", "z2": "D", "u": 360}, {"n": "BOITE PATISSIERE LEBHAR 18X15 (SAVARY)", "s": "Usine 16", "z1": "CC", "z2": "C", "u": 300}, {"n": "BOITE PATISSIERE LEBHAR 23X8 (SAVARY)", "s": "Usine 16", "z1": "CC", "z2": "C", "u": 466}, {"n": "Etiquette 100x150", "s": "Emballage", "z1": "E", "z2": null, "u": 500}, {"n": "Etiquette 70 x 80 mm", "s": "Emballage", "z1": "E", "z2": null, "u": 10000}, {"n": "Etiquette 70x40", "s": "Emballage", "z1": "E", "z2": null, "u": 37500}, {"n": "Plaque or focaccia 150gr 12x18cm", "s": "Emballage", "z1": "E", "z2": null, "u": 200}, {"n": "ROND SIMPLE FACE 18CM OR/NOIR - PQT 100", "s": "Emballage", "z1": "E", "z2": null, "u": 100}, {"n": "ROND SIMPLE FACE 22CM OR/NOIR - PQT 100", "s": "Emballage", "z1": "E", "z2": null, "u": 200}, {"n": "ROND SIMPLE FACE 26CM OR/NOIR - PQT 100", "s": "Emballage", "z1": "E", "z2": null, "u": 100}, {"n": "Ruban adhésif DOUCETTYS", "s": "Emballage", "z1": "E", "z2": null, "u": 36}, {"n": "Ruban adhésif SAVARY", "s": "Emballage", "z1": "E", "z2": null, "u": 36}, {"n": "blouse plp 40g blanc XL", "s": "Hygiène", "z1": "F", "z2": null, "u": 50}, {"n": "Brosse à cuve fibres dures alimentaire PLP 20,5cm bleu Vikan", "s": "Hygiène", "z1": "F", "z2": null, "u": 1}, {"n": "Cache-barbe PLP 16g/m² blanc Paredes( Colis de 10 sachets de 100)", "s": "Hygiène", "z1": "F", "z2": null, "u": 1000}, {"n": "Charlotte blanche à clip accordéon Ø 48cm Non tissé 10X100 - Ct. 1000", "s": "Hygiène", "z1": "F", "z2": null, "u": 1000}, {"n": "Nettoyant vaisselle machine eau dure Ecolabel Paredes Lava Wash HW bidon de 20L (1 bidon)", "s": "Hygiène", "z1": "F", "z2": null, "u": 1}, {"n": "Traitement des bacs à graisse et canalisations Paredes Expert Ciba Trap bidon de 5L (Colis de 2 bidons de 5L)", "s": "Hygiène", "z1": "F", "z2": null, "u": 1}, {"n": "Combinaison de travail (Colis de 25)", "s": "Hygiène", "z1": "F", "z2": null, "u": 25}, {"n": "DETERG DESINF CIBA BIONYM 21KG", "s": "Hygiène", "z1": "F", "z2": null, "u": 1}, {"n": "Décapant four Ecocert Paredes Ciba Dkap bidon de 5L", "s": "Hygiène", "z1": "F", "z2": null, "u": 1}, {"n": "Détartrant cuisine Ecocert Paredes Ciba Dkal bidon de 5L (colis de 2 bidons)", "s": "Hygiène", "z1": "F", "z2": null, "u": 1}, {"n": "Eponge inox double face Tampel (lot de 5)", "s": "Hygiène", "z1": "F", "z2": null, "u": 5}, {"n": "Eponge spirale Inox 60g - Sachet de 10", "s": "Hygiène", "z1": "F", "z2": null, "u": 50}, {"n": "Essuyage dévidage central Paredes blanc 450 formats 18,2 x 30 cm Ecolabel ( colis de 6)", "s": "Hygiène", "z1": "F", "z2": null, "u": 9}, {"n": "Gant à usage unique nitrile Paredes Ecofeeds bleu lavande non poudré taille L(6/7) (colis de 10 boites de 200)", "s": "Hygiène", "z1": "F", "z2": null, "u": 200}, {"n": "Gant à usage unique nitrile Paredes Ecofeeds bleu lavande non poudré taille S(Colis de 10 boites de 200)", "s": "Hygiène", "z1": "F", "z2": null, "u": 200}, {"n": "Gant à usage unique nitrile Paredes Ecofeeds bleu lavande non poudré taille XL (6/7) (colis de 10 boites de 200)", "s": "Hygiène", "z1": "F", "z2": null, "u": 200}, {"n": "Gant à usage unique nitrile Paredes Ecofeeds noir non poudré taille L (8/9)", "s": "Hygiène", "z1": "F", "z2": null, "u": 100}, {"n": "Gant à usage unique nitrile Paredes Ecofeeds noir non poudré taille S (8/9)", "s": "Hygiène", "z1": "F", "z2": null, "u": 100}, {"n": "Gant à usage unique nitrile PROP Ecofeeds bleu lavande non poudré M (colis de 10 boites de 200)", "s": "Hygiène", "z1": "F", "z2": null, "u": 200}, {"n": "GHA Gel hydroalcoolique DAILYK PREMIUM Flacon pompe 500ml", "s": "Hygiène", "z1": "F", "z2": null, "u": 18}, {"n": "Kit visiteur (1 blouse, 1 charlotte, 1 masque, 1 paire de surchaussures) Hopen Taille Unique (lot de 100)", "s": "Hygiène", "z1": "F", "z2": null, "u": 100}, {"n": "LAVETTE AJOURÉE Non tissée ajourée 35x50cm - Sachet de 25", "s": "Hygiène", "z1": "F", "z2": null, "u": 25}, {"n": "Lingettes désinfectantes mains et surfaces Laboratoire Garcin Acti'septyl DSR (Colis de 12 boites de 120)", "s": "Hygiène", "z1": "F", "z2": null, "u": 120}, {"n": "Liquide vaisselle plonge manuelle citron Paredes Access flacon de 1L", "s": "Hygiène", "z1": "F", "z2": null, "u": 1}, {"n": "Lotion désinfectante Paredes Medi Asept recharge de 1400ml (Colis de 4 recharges de 1400ml)", "s": "Hygiène", "z1": "F", "z2": null, "u": 1}, {"n": "Manche alimentaire PLP 145cm bleu Maine Brosserie (1)", "s": "Hygiène", "z1": "F", "z2": null, "u": 1}, {"n": "Masque médical type II ( 1 boite de 60)", "s": "Hygiène", "z1": "F", "z2": null, "u": 60}, {"n": "Mocassin de sécurité Bicap Cassini S3 SRC noir pointure 39 (1 paire)", "s": "Hygiène", "z1": "F", "z2": null, "u": 2}, {"n": "Nettoyant vitres IJN pulvérisateur de 750ml (Colis de 12 pulvérisateurs)", "s": "Hygiène", "z1": "F", "z2": null, "u": 5}, {"n": "Papier toilette rouleau géant Jumbo blanc 380m 8,3 x 17,5 cm Ecolabel Paredes (colis de 6 rouleaux)", "s": "Hygiène", "z1": "F", "z2": null, "u": 6}, {"n": "Pastilles Chlorées (1 colis de 25kg)", "s": "Hygiène", "z1": "F", "z2": null, "u": 4}, {"n": "RACLETTE SOL MOUSS 60CM BLEU (1)", "s": "Hygiène", "z1": "F", "z2": null, "u": 6}, {"n": "Sac Poubelle 30L", "s": "Hygiène", "z1": "F", "z2": null, "u": 500}, {"n": "Sac poubelle PE BD 150L noir 68µ PAREDES (Colis de 10 rouleaux de 10)", "s": "Hygiène", "z1": "F", "z2": null, "u": 10}, {"n": "Surchaussure anti-glisse Tiger grip avec embout aluminium/titane caoutchouc noir taille L (41/44)", "s": "Hygiène", "z1": "F", "z2": null, "u": 2}, {"n": "Surchaussure anti-glisse Tiger grip avec embout aluminium/titane caoutchouc noir taille M (37/40)", "s": "Hygiène", "z1": "F", "z2": null, "u": 1}, {"n": "Surchaussure anti-glisse Tiger grip avec embout aluminium/titane caoutchouc noir taille S (34/36)", "s": "Hygiène", "z1": "F", "z2": null, "u": 1}, {"n": "Tablette linge désinfectante Paredes Neli Desitabs seau de 125x25g", "s": "Hygiène", "z1": "F", "z2": null, "u": 1}, {"n": "BOMBE A GRAISSE 600MLGRAISS VIT", "s": "Boulangerie", "z1": "Autres", "z2": null, "u": 1}, {"n": "Moule Nordia 1 pers (2520u)", "s": "Prod", "z1": "Autres", "z2": null, "u": 2520}, {"n": "Moule marquis", "s": "Prod", "z1": "Autres", "z2": null, "u": 200}, {"n": "Moule pani-tourte - H 5 cm - Ø 16cm ( fabrication artisanal)", "s": "Prod", "z1": "Autres", "z2": null, "u": 150}, {"n": "Moule pani-tourte - H 5 cm - Ø 16cm atelier papille", "s": "Prod", "z1": "Autres", "z2": null, "u": 150}, {"n": "Moule pani-tourte - H 5cm - Ø 16cm", "s": "Prod", "z1": "Autres", "z2": null, "u": 150}, {"n": "Moule pani-tourte - H 5cm - Ø 20cm", "s": "Prod", "z1": "Autres", "z2": null, "u": 90}, {"n": "Moule pani-tourte - H 5cm - Ø 24cm", "s": "Prod", "z1": "Autres", "z2": null, "u": 60}, {"n": "Porte gobelet", "s": "Usine 16", "z1": "A", "z2": null, "u": 1}], "z": [{"c": "A", "l": "RDC — rack mur gauche", "n": "RDC"}, {"c": "B", "l": "RDC — bloc central, allée gauche", "n": "RDC"}, {"c": "C", "l": "RDC — bloc central, allée droite", "n": "RDC"}, {"c": "D", "l": "RDC — rack mur droit", "n": "RDC"}, {"c": "AA", "l": "R+1 — au-dessus de la zone A", "n": "R+1"}, {"c": "BB", "l": "R+1 — au-dessus de la zone B", "n": "R+1"}, {"c": "CC", "l": "R+1 — au-dessus de la zone C", "n": "R+1"}, {"c": "DD", "l": "R+1 — au-dessus de la zone D", "n": "R+1"}, {"c": "E", "l": "Réserve — en dessous du rez-de-chaussée", "n": "Réserve"}, {"c": "F", "l": "Salle Hygiène Paredes", "n": "F"}, {"c": "Autres", "l": "À classer — emplacement à préciser", "n": "Autres"}]};
+
+/* ---------- catalogue (rafraîchi depuis la feuille Produits) ---------- */
+let PRODUCTS = [], ZONES = [], SEC = {}, SERVICES = [];
+let cat = {source:"fichier", at:"", n:0};
+const norm = s => String(s == null ? "" : s).trim().toLowerCase().replace(/\s+/g, " ");
+
+function setCatalogue(prods, zones){
+  const vus = {};
+  PRODUCTS = (prods || []).filter(p => p && p.n).map((p, i) => {
+    let k = norm(p.n) || ("produit-" + i);
+    if (vus[k]) k += "#" + i;
+    vus[k] = 1;
+    return {n: String(p.n).trim(), s: p.s || "", z1: p.z1 || "Autres", z2: p.z2 || null, u: Number(p.u) || 1, k};
+  });
+  if (zones && zones.length) ZONES = zones.filter(z => z && z.c && norm(z.c) !== "code");
+  SEC = {};
+  ZONES.forEach(z => SEC[z.c] = z);
+  PRODUCTS.forEach(p => { if (!SEC[p.z1]) SEC[p.z1] = {c: p.z1, l: "Zone " + p.z1, n: "Autres"}; });
+  SERVICES = [...new Set(PRODUCTS.map(p => p.s).filter(Boolean))].sort();
+  cat.n = PRODUCTS.length;
+}
 
 const LEVELS = [
   {id:"RDC", label:"Rez-de-chaussée", zones:["A","B","C","D"]},
@@ -223,8 +276,12 @@ const LEVELS = [
   {id:"E", label:"Réserve", zones:["E"]},
   {id:"F", label:"Salle hygiène", zones:["F"]}
 ];
+const ZONES_PLAN = ["A","B","C","D","AA","BB","CC","DD","E","F","Autres"];
 
-let state = {}, sector = "A", level = "RDC", service = "", onlyTodo = false, query = "";
+let state = {};              // clé produit -> {c, l, z, e}
+let service = null;          // null = pas encore choisi ; "" = tous les services
+let sector = null;           // null = toutes les zones du service
+let level = "RDC", onlyTodo = false, query = "", flagKey = null;
 let cfg = {url:"https://script.google.com/macros/s/AKfycbyqObF3wRnKHwdRRQSTawKyDv5bTHyz_ek2a6B5PoGMQGaTyFpOvf__5IO7iFTcDtHaWg/exec", token:"553171", auto:true};
 let sync = {status:"idle", at:null, msg:""};
 
@@ -232,234 +289,245 @@ const $ = s => document.querySelector(s);
 const dateEl = $("#d");
 dateEl.value = new Date().toISOString().slice(0,10);
 const frDate = () => dateEl.value.split("-").reverse().join("/");
+const nf = n => n.toLocaleString("fr-FR");
 
-/* ---------- stockage local (Claude ou navigateur) ---------- */
+/* ---------- stockage local ---------- */
 const store = {
   async get(k){
-    if (typeof window.storage !== "undefined" && window.storage){ const r = await window.storage.get(k); return r && r.value; }
-    return localStorage.getItem(k);
+    try {
+      if (typeof window.storage !== "undefined" && window.storage){ const r = await window.storage.get(k); return r && r.value; }
+      return localStorage.getItem(k);
+    } catch(e){ return null; }
   },
   async set(k, v){
-    if (typeof window.storage !== "undefined" && window.storage) return window.storage.set(k, v);
-    localStorage.setItem(k, v);
+    try {
+      if (typeof window.storage !== "undefined" && window.storage) return await window.storage.set(k, v);
+      localStorage.setItem(k, v);
+    } catch(e){}
   }
 };
 
-/* ---------- persistance locale ---------- */
 const key = () => "inv:" + dateEl.value;
 let saveTimer = null;
 function save(){
   clearTimeout(saveTimer);
   saveTimer = setTimeout(async () => {
-    try { await store.set(key(), JSON.stringify(state)); } catch(e){}
+    await store.set(key(), JSON.stringify(state));
     if (cfg.auto && cfg.url) queuePush();
   }, 700);
 }
-async function loadCfg(){
-  try { 
-    const v = await store.get("cfg:gsheet"); 
-    if (v) {
-      const saved = JSON.parse(v);
-      cfg.token = saved.token || cfg.token;
-      cfg.auto = saved.auto !== undefined ? saved.auto : cfg.auto;
-      if (saved.url) cfg.url = saved.url;
-    } 
-  } catch(e){}
-  $("#c-url").value = cfg.url; 
-  $("#c-tok").value = cfg.token; 
-  $("#c-auto").checked = !!cfg.auto;
-}
 async function load(){
   state = {};
-  try { const v = await store.get(key()); if (v) state = JSON.parse(v); } catch(e){}
+  const v = await store.get(key());
+  if (v) { try { state = JSON.parse(v); } catch(e){} }
   render();
 }
 
 /* ---------- calculs ---------- */
-const rec = id => state[id] || {};
-const isCounted = id => { const r = rec(id); return r.z === true || Number(r.c) > 0 || Number(r.l) > 0; };
-const totalUnits = p => { const r = rec(p.id); return (Number(r.c)||0) * (p.u||0) + (Number(r.l)||0); };
-const nf = n => n.toLocaleString("fr-FR");
+const rec = k => state[k] || {};
+const isCounted = k => { const r = rec(k); return r.z === true || Number(r.c) > 0 || Number(r.l) > 0; };
+const totalUnits = p => { const r = rec(p.k); return (Number(r.c)||0) * (p.u||0) + (Number(r.l)||0); };
+const zoneOf = p => rec(p.k).e || p.z1;              // emplacement réellement constaté
+const inService = p => !service || p.s === service;
+const itemsOf = code => PRODUCTS.filter(p => inService(p) && (p.z1 === code || p.z2 === code));
+const scope = () => sector ? itemsOf(sector) : PRODUCTS.filter(inService);
+
 function progress(code){
-  const z = SEC[code];
-  if (!z) return {done:0, tot:0, pct:0, state:"off"};
-  const done = z.items.filter(p => isCounted(p.id)).length, tot = z.items.length;
-  return {done, tot, pct: tot ? done/tot : 0, state: done === tot ? "full" : (done ? "part" : "todo")};
+  const items = itemsOf(code);
+  const done = items.filter(p => isCounted(p.k)).length, tot = items.length;
+  return {done, tot, pct: tot ? done/tot : 0, state: !tot ? "off" : (done === tot ? "full" : (done ? "part" : "todo"))};
 }
 
 /* ---------- plan ---------- */
 function zone(code, x, y, w, h){
   const g = progress(code);
   return `<g class="zone ${g.state}${code===sector?" sel":""}" data-z="${code}" ${g.tot?'tabindex="0" role="button"':""}
-      aria-label="Secteur ${code}, ${g.done} sur ${g.tot} comptés">
+      aria-label="Zone ${code}, ${g.done} sur ${g.tot} comptés">
     <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="3"/>
-    <text class="zc" x="${x+w/2}" y="${y+h/2 - 4}">${code}</text>
-    <text class="zn" x="${x+w/2}" y="${y+h/2 + 13}">${g.tot ? g.done+"/"+g.tot : "vide"}</text>
+    <text class="zc" x="${x+w/2}" y="${y+h/2-4}">${code}</text>
+    <text class="zn" x="${x+w/2}" y="${y+h/2+13}">${g.tot ? g.done+"/"+g.tot : "—"}</text>
   </g>`;
 }
-function planRDC(codes){
+function planEtage(codes, rdc){
   const [a,b,c,d] = codes;
-  return `<svg class="map" viewBox="0 0 340 250" role="group" aria-label="Plan ${level}">
-    <rect x="8" y="8" width="324" height="234" fill="none" class="wallline" rx="4"/>
-    <rect x="140" y="4" width="60" height="9" class="struct"/><text class="lbl" x="170" y="24">PORTE</text>
-    ${zone(a, 20, 34, 58, 190)}
-    ${zone(b, 108, 34, 54, 190)}
-    ${zone(c, 166, 34, 54, 190)}
-    ${zone(d, 252, 34, 58, 190)}
-    <text class="lbl sm" x="93" y="130" transform="rotate(-90 93 130)">allée</text>
-    <text class="lbl sm" x="236" y="130" transform="rotate(-90 236 130)">allée</text>
-    <g class="struct-g">
-      <rect x="82" y="108" width="22" height="42" class="struct"/><text class="lbl sm" x="93" y="103">ESC.</text>
-      <rect x="225" y="108" width="22" height="42" class="struct"/><text class="lbl sm" x="236" y="103">ESC.</text>
-    </g>
-    ${level === "RDC" ? `<g class="zone ${progress("E").state}" data-z="E" tabindex="0" role="button" aria-label="Descente vers la réserve E">
-      <rect x="126" y="226" width="88" height="15" rx="2"/>
-      <text class="zc ink" x="170" y="234" style="font-size:10px">↓ E · réserve</text>
-    </g>` : ""}
+  const g = progress("E");
+  return `<svg class="map" viewBox="0 0 340 250" role="group" aria-label="Plan ${rdc ? "rez-de-chaussée" : "R+1"}">
+    <rect x="12" y="14" width="316" height="224" class="wallline" rx="4"/>
+    <rect x="84" y="10" width="26" height="8" class="struct"/><text class="lbl" x="97" y="30">PORTE</text>
+    ${zone(a, 22, 40, 58, 178)}
+    ${zone(b, 106, 40, 52, 178)}
+    ${zone(c, 166, 40, 52, 178)}
+    ${zone(d, 244, 40, 58, 178)}
+    <text class="lbl sm" x="93" y="150" transform="rotate(-90 93 150)">allée</text>
+    <text class="lbl sm" x="231" y="150" transform="rotate(-90 231 150)">allée</text>
+    <text class="lbl sm" x="162" y="230">bloc central</text>
+    ${rdc
+      ? `<text class="lbl sm" x="313" y="166">porte</text>
+         <g class="zone ${g.state}${sector==="E"?" sel":""}" data-z="E" ${g.tot?'tabindex="0" role="button"':""} aria-label="Porte vers la réserve E">
+           <rect x="302" y="174" width="22" height="44" rx="2"/>
+           <text class="zc ink" x="313" y="190" style="font-size:13px">E</text>
+           <text class="zn ink" x="313" y="206" style="font-size:8px">↓</text>
+         </g>`
+      : `<text class="lbl sm" x="311" y="166">porte</text><rect x="316" y="174" width="8" height="44" class="struct"/>`}
   </svg>`;
 }
 function planReserve(){
   const g = progress("E");
-  const rack = (n, x, y) => `<g><rect x="${x}" y="${y}" width="46" height="24" rx="2" style="fill:${g.state==="full"?"var(--accent)":(g.state==="part"?"var(--accent-soft)":"var(--card)")};stroke:var(--line)"/><text class="lbl" x="${x+23}" y="${y+15}" style="fill:${g.state==="full"?"#fff":"var(--ink)"}">E-${String(n).padStart(2,"0")}</text></g>`;
-  return `<svg class="map" viewBox="0 0 340 250" role="group" aria-label="Plan réserve">
-    <rect x="8" y="8" width="324" height="234" fill="none" class="wallline" rx="4"/>
-    <g class="zone ${g.state}${sector==="E"?" sel":""}" data-z="E" tabindex="0" role="button" aria-label="Secteur E">
-      <rect class="plain" x="16" y="16" width="308" height="218" rx="4"/>
-      <text class="zc ink" x="170" y="28" style="font-size:15px">E · réserve</text>
-      <text class="zn ink" x="170" y="42">${g.done}/${g.tot} comptés</text>
+  const fill = g.state === "full" ? "var(--accent)" : (g.state === "part" ? "var(--accent-soft)" : "var(--card)");
+  const enc = g.state === "full" ? "#fff" : "var(--ink)";
+  const rack = (n, x, y, w, h) => `<g><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="2" style="fill:${fill};stroke:var(--line)"/><text class="lbl" x="${x+w/2}" y="${y+h/2+3}" style="fill:${enc}">${n}</text></g>`;
+  return `<svg class="map" viewBox="0 0 340 250" role="group" aria-label="Plan de la réserve">
+    <rect x="12" y="14" width="316" height="224" class="wallline" rx="4"/>
+    <g class="zone ${g.state}${sector==="E"?" sel":""}" data-z="E" ${g.tot?'tabindex="0" role="button"':""} aria-label="Zone E">
+      <rect class="plain" x="20" y="22" width="300" height="208" rx="4"/>
+      <text class="zc ink" x="170" y="128" style="font-size:26px">E</text>
+      <text class="zn ink" x="170" y="150">${g.tot ? g.done+"/"+g.tot+" comptés" : "aucun produit ici"}</text>
     </g>
-    <rect x="146" y="50" width="48" height="9" class="struct"/><text class="lbl sm" x="170" y="68">ARRIVÉE DU RDC</text>
-    ${rack(1,26,80)}${rack(3,26,110)}
-    <rect x="26" y="142" width="46" height="26" class="struct"/><text class="lbl sm" x="49" y="158">ESCALIER</text>
-    ${rack(5,26,176)}${rack(7,90,176)}${rack(9,154,176)}
-    ${rack(2,246,80)}${rack(4,246,110)}
-    <rect x="290" y="150" width="34" height="9" class="struct"/><text class="lbl sm" x="272" y="146">2ᵉ arrivée</text>
-    <text class="lbl sm" x="62" y="76">impairs · gauche</text>
-    <text class="lbl sm" x="269" y="76">pairs · droite</text>
-    <text class="lbl sm" x="170" y="228">1 numéro = 1 rack de 3 palettes</text>
+    ${rack("E-01", 168, 30, 52, 24)}
+    <rect x="228" y="26" width="34" height="8" class="struct"/><text class="lbl sm" x="245" y="48">PORTE</text>
+    ${rack("E-02", 268, 30, 52, 24)}
+    ${rack("E-05", 20, 150, 40, 62)}
+    ${rack("E-03", 96, 150, 124, 62)}
+    <text class="lbl sm" x="170" y="226">1 numéro = 1 rack de 3 palettes</text>
   </svg>`;
 }
 function planF(){
   const g = progress("F");
-  const fill = g.state==="full" ? "var(--accent)" : (g.state==="part" ? "var(--accent-soft)" : "var(--card)");
   let shelves = "";
-  for (let i = 0; i < 12; i++){
-    shelves += `<rect class="shelf" x="30" y="${46 + i*14}" width="72" height="11"/>`;
-    shelves += `<rect class="shelf" x="238" y="${46 + i*14}" width="72" height="11"/>`;
+  for (let i = 0; i < 7; i++){
+    shelves += `<rect class="shelf" x="124" y="${82 + i*19}" width="30" height="14"/>`;
+    shelves += `<rect class="shelf" x="186" y="${82 + i*19}" width="30" height="14"/>`;
   }
-  return `<svg class="map" viewBox="0 0 340 250" role="group" aria-label="Plan salle hygiène">
-    <rect x="8" y="8" width="324" height="234" fill="none" class="wallline" rx="4"/>
-    <g class="zone ${g.state}${sector==="F"?" sel":""}" data-z="F" tabindex="0" role="button" aria-label="Secteur F">
-      <rect class="plain" x="16" y="16" width="308" height="218" rx="4"/>
+  return `<svg class="map" viewBox="0 0 340 250" role="group" aria-label="Plan de la salle hygiène">
+    <rect x="118" y="30" width="104" height="190" class="wallline" rx="3"/>
+    <g class="zone ${g.state}${sector==="F"?" sel":""}" data-z="F" ${g.tot?'tabindex="0" role="button"':""} aria-label="Zone F">
+      <rect class="plain" x="122" y="34" width="96" height="182" rx="2"/>
       ${shelves}
-      <text class="zc ink" x="170" y="120" style="font-size:34px">F</text>
-      <text class="zn ink" x="170" y="142">${g.done}/${g.tot} comptés</text>
+      <text class="zc ink" x="170" y="52" style="font-size:24px">F</text>
+      <text class="zn ink" x="170" y="70">${g.tot ? g.done+"/"+g.tot+" comptés" : "aucun produit ici"}</text>
     </g>
-    <rect x="112" y="40" width="116" height="180" rx="3" style="fill:none;stroke:var(--line-2)" stroke-dasharray="3 3"/>
-    <text class="lbl sm" x="170" y="166">allée centrale</text>
-    <text class="lbl sm" x="66" y="36">F-01 → F-12</text>
-    <text class="lbl sm" x="274" y="36">F-13 → F-24</text>
-    <rect x="146" y="234" width="48" height="8" class="struct"/><text class="lbl" x="170" y="230">ENTRÉE</text>
+    <rect x="218" y="88" width="8" height="30" class="struct"/><text class="lbl sm" x="252" y="106">PORTE</text>
+    <text class="lbl" x="170" y="236">SALLE HYGIÈNE — ZONE F</text>
+    <text class="lbl sm" x="62" y="130">étagères le long</text>
+    <text class="lbl sm" x="66" y="142">des deux murs</text>
   </svg>`;
 }
 function renderPlan(){
   $("#levels").innerHTML = LEVELS.map(l => {
     const tot = l.zones.reduce((s,c) => s + progress(c).tot, 0);
     const done = l.zones.reduce((s,c) => s + progress(c).done, 0);
-    return `<button data-l="${l.id}" aria-pressed="${l.id===level}">${l.label}<span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--ink-2)"> ${done}/${tot}</span></button>`;
-  }).join("") + `<button class="sync" id="syncbtn" title="État de la synchronisation"><i class="dot ${sync.status==="ok"?"ok":sync.status==="wait"?"wait":sync.status==="err"?"err":""}"></i>${syncLabel()}</button>`;
+    return `<button data-l="${l.id}" aria-pressed="${l.id===level}">${l.label} <span class="num">${done}/${tot}</span></button>`;
+  }).join("") + `<button class="sync" id="syncbtn"><i class="dot ${sync.status==="ok"?"ok":sync.status==="wait"?"wait":sync.status==="err"?"err":""}"></i>${syncLabel()}</button>`;
   const L = LEVELS.find(l => l.id === level);
-  $("#map").innerHTML = level === "E" ? planReserve() : level === "F" ? planF() : planRDC(L.zones);
+  $("#map").innerHTML = level === "E" ? planReserve() : level === "F" ? planF() : planEtage(L.zones, level === "RDC");
+  $("#allzones").setAttribute("aria-pressed", !sector);
+  $("#autres").setAttribute("aria-pressed", sector === "Autres");
 }
 function syncLabel(){
   if (!cfg.url) return "Sheets non relié";
   if (sync.status === "wait") return "envoi…";
   if (sync.status === "err") return "échec envoi";
   if (sync.status === "ok") return "envoyé " + sync.at;
-  return "Sheets relié";
+  return cat.source === "sheets" ? "produits à jour " + cat.at : "Sheets relié";
 }
 
-/* ---------- rendu liste ---------- */
-function renderServices(){
-  const el = $("#svc");
-  if (el.options.length) return;
-  el.innerHTML = `<option value="">Tous</option>` + [...new Set(PRODUCTS.map(p => p.s))].sort().map(s => `<option>${s}</option>`).join("");
-}
+/* ---------- liste ---------- */
 function visible(){
-  let items = (SEC[sector] || {items:[]}).items;
-  if (service) items = items.filter(p => p.s === service);
-  if (onlyTodo) items = items.filter(p => !isCounted(p.id));
+  let items = scope();
+  if (onlyTodo) items = items.filter(p => !isCounted(p.k));
   if (query){ const q = query.toLowerCase(); items = items.filter(p => p.n.toLowerCase().includes(q)); }
   return items;
 }
 function render(){
-  const z = SEC[sector];
-  const g = progress(sector);
-  $("#p-code").textContent = z.c;
-  $("#p-lib").textContent = z.l;
-  $("#p-lvl").textContent = "Niveau " + z.n + " · " + g.tot + " références";
-  $("#p-bar").style.width = (g.pct*100) + "%";
-  $("#p-count").textContent = g.done + " / " + g.tot + " comptés";
-  $("#p-units").textContent = nf(z.items.reduce((s,p) => s + totalUnits(p), 0)) + " unités";
+  const items = scope();
+  const done = items.filter(p => isCounted(p.k)).length;
+  const z = sector ? SEC[sector] : null;
+  $("#p-code").textContent = z ? z.c : (service || "Tous services");
+  $("#p-lib").textContent = z ? z.l : "Toutes les zones — " + items.length + " références à contrôler";
+  $("#p-lvl").textContent = (service ? service : "Tous les services") + (z ? " · niveau " + z.n : "");
+  $("#p-bar").style.width = (items.length ? done/items.length*100 : 0) + "%";
+  $("#p-count").textContent = done + " / " + items.length + " comptés";
+  $("#p-units").textContent = nf(items.reduce((s,p) => s + totalUnits(p), 0)) + " unités";
+  $("#who-l").textContent = service || "Tous";
 
-  const items = visible();
-  $("#list").innerHTML = items.length ? items.map(p => {
-    const r = rec(p.id), t = totalUnits(p);
-    const cls = r.z ? "zeroed" : (isCounted(p.id) ? "counted" : "");
+  const list = visible();
+  $("#list").innerHTML = list.length ? list.map(p => {
+    const r = rec(p.k), t = totalUnits(p), hors = r.e && r.e !== p.z1 && r.e !== p.z2;
+    const cls = hors ? "moved" : (r.z ? "zeroed" : (isCounted(p.k) ? "counted" : ""));
     const alt = [p.z1, p.z2].filter(x => x && x !== sector)[0];
-    return `<article class="row ${cls}" data-id="${p.id}">
+    return `<article class="row ${cls}" data-k="${p.k}">
       <div class="id"><div class="name">${p.n}</div>
-        <div class="meta">${p.s} · ${nf(p.u)} u./colis${alt ? ` · <em>aussi ${alt}</em>` : ""}</div></div>
+        <div class="meta">${p.s} · ${nf(p.u)} u./colis · zone ${p.z1}${p.z2 ? "/"+p.z2 : ""}${hors ? ` · <b>trouvé en ${r.e}</b>` : (alt && sector ? ` · <em>aussi ${alt}</em>` : "")}</div></div>
       <div class="stepper">
         <button data-act="dec" aria-label="Retirer un colis">−</button>
         <input class="qty" inputmode="numeric" pattern="[0-9]*" value="${r.c ?? ""}" placeholder="—" aria-label="Nombre de colis — ${p.n}">
         <button data-act="inc" aria-label="Ajouter un colis">+</button>
       </div>
       <button class="zero" data-act="zero">0</button>
+      <button class="flag" data-act="flag" title="Ce produit n'est pas dans la bonne zone" aria-label="Signaler une mauvaise zone">⚑</button>
       <div class="total">
         <span>${(r.c || r.l) ? `<b>${nf(t)}</b> unités` : (r.z ? "<b>Stock nul</b>" : "en attente de comptage")}</span>
         ${r.l != null ? `<span>+ <input class="loose" inputmode="numeric" value="${r.l}" aria-label="Unités hors colis"> u. hors colis</span>`
                       : `<button class="add" data-act="loose">+ unités hors colis</button>`}
       </div></article>`;
-  }).join("") : `<p class="empty">${onlyTodo ? "Tout est compté dans ce secteur." : "Aucun produit ne correspond."}</p>`;
+  }).join("") : `<p class="empty">${onlyTodo ? "Tout est compté ici." : "Aucun produit ne correspond."}</p>`;
 
   renderPlan();
-  $("#autres").setAttribute("aria-pressed", sector === "Autres");
-  const gd = PRODUCTS.filter(p => isCounted(p.id)).length;
-  $("#b-main").textContent = gd + " / " + PRODUCTS.length + " produits comptés";
+  const total = PRODUCTS.filter(inService);
+  $("#b-main").textContent = total.filter(p => isCounted(p.k)).length + " / " + total.length + " produits comptés";
   $("#b-sub").textContent = "inventaire du " + frDate() + (sync.msg ? " · " + sync.msg : "");
 }
 
 /* ---------- saisie ---------- */
-function set(id, patch){
-  state[id] = {...rec(id), ...patch};
-  const r = state[id];
-  if (!r.c && !r.l && !r.z) delete state[id];
+function set(k, patch){
+  state[k] = {...rec(k), ...patch};
+  const r = state[k];
+  if (!r.c && !r.l && !r.z && !r.e) delete state[k];
   save();
 }
 $("#list").addEventListener("click", e => {
   const btn = e.target.closest("button[data-act]"); if (!btn) return;
-  const id = btn.closest(".row").dataset.id, act = btn.dataset.act;
-  if (act === "inc") set(id, {c:(Number(rec(id).c)||0)+1, z:false});
-  if (act === "dec") set(id, {c:Math.max(0,(Number(rec(id).c)||0)-1) || undefined, z:false});
-  if (act === "zero") set(id, {z:!rec(id).z, c:undefined, l:undefined});
-  if (act === "loose") set(id, {l:0});
+  const k = btn.closest(".row").dataset.k, act = btn.dataset.act;
+  if (act === "inc") set(k, {c:(Number(rec(k).c)||0)+1, z:false});
+  if (act === "dec") set(k, {c:Math.max(0,(Number(rec(k).c)||0)-1) || undefined, z:false});
+  if (act === "zero") set(k, {z:!rec(k).z, c:undefined, l:undefined});
+  if (act === "loose") set(k, {l:0});
+  if (act === "flag") return openZone(k);
   render();
 });
 $("#list").addEventListener("input", e => {
   const row = e.target.closest(".row"); if (!row) return;
-  const id = row.dataset.id, v = e.target.value.replace(/[^0-9]/g,"");
+  const k = row.dataset.k, v = e.target.value.replace(/[^0-9]/g,"");
   e.target.value = v;
-  if (e.target.classList.contains("qty")) state[id] = {...rec(id), c: v === "" ? undefined : Number(v), z:false};
-  if (e.target.classList.contains("loose")) state[id] = {...rec(id), l: v === "" ? 0 : Number(v)};
-  const p = PRODUCTS.find(x => x.id == id), r = state[id];
+  if (e.target.classList.contains("qty")) state[k] = {...rec(k), c: v === "" ? undefined : Number(v), z:false};
+  if (e.target.classList.contains("loose")) state[k] = {...rec(k), l: v === "" ? 0 : Number(v)};
+  const p = PRODUCTS.find(x => x.k === k), r = state[k];
   row.querySelector(".total span").innerHTML = (r.c || r.l) ? `<b>${nf(totalUnits(p))}</b> unités` : "en attente de comptage";
-  row.className = "row " + (isCounted(id) ? "counted" : "");
   save();
 });
 $("#list").addEventListener("change", render);
 
-/* ---------- navigation plan ---------- */
+/* ---------- signalement de mauvaise zone ---------- */
+function openZone(k){
+  flagKey = k;
+  const p = PRODUCTS.find(x => x.k === k);
+  const r = rec(k);
+  $("#dz-p").innerHTML = `<b>${p.n}</b><br>Zone attribuée : ${p.z1}${p.z2 ? " ou " + p.z2 : ""}. Où l'avez-vous trouvé ?`;
+  $("#dz-grid").innerHTML = ZONES_PLAN.filter(c => SEC[c] || c === "Autres").map(c =>
+    `<button data-z="${c}" class="${c===p.z1||c===p.z2?"att":""}" aria-pressed="${r.e===c}">${c}</button>`).join("");
+  $("#dzone").showModal();
+}
+$("#dz-grid").addEventListener("click", e => {
+  const b = e.target.closest("button[data-z]"); if (!b || !flagKey) return;
+  const c = b.dataset.z, p = PRODUCTS.find(x => x.k === flagKey);
+  set(flagKey, {e: c === p.z1 ? undefined : c});
+  $("#dzone").close(); render();
+  if (c !== p.z1 && c !== p.z2) toast("Signalé : trouvé en " + c + " au lieu de " + p.z1);
+});
+$("#dz-clear").addEventListener("click", () => { if (flagKey) set(flagKey, {e: undefined}); $("#dzone").close(); render(); });
+$("#dz-close").addEventListener("click", () => $("#dzone").close());
+
+/* ---------- navigation ---------- */
 $("#levels").addEventListener("click", e => {
   const b = e.target.closest("button[data-l]");
   if (b){ level = b.dataset.l; renderPlan(); return; }
@@ -472,15 +540,14 @@ $("#map").addEventListener("keydown", e => {
 function selectZone(g){
   if (!g || g.classList.contains("off")) return;
   const code = g.dataset.z;
-  if (!SEC[code]) return;
-  sector = code;
-  if (code === "E") level = "E";
+  sector = (sector === code) ? null : code;
+  if (sector === "E") level = "E";
   render();
   $(".plate").scrollIntoView({behavior:"smooth", block:"start"});
 }
-$("#autres").addEventListener("click", () => { if (SEC["Autres"]){ sector = "Autres"; render(); $(".plate").scrollIntoView({behavior:"smooth"}); } });
+$("#allzones").addEventListener("click", () => { sector = null; render(); });
+$("#autres").addEventListener("click", () => { sector = sector === "Autres" ? null : "Autres"; render(); });
 $("#q").addEventListener("input", e => { query = e.target.value; render(); });
-$("#svc").addEventListener("change", e => { service = e.target.value; render(); });
 $("#only").addEventListener("click", e => { onlyTodo = !onlyTodo; e.currentTarget.setAttribute("aria-pressed", onlyTodo); render(); });
 dateEl.addEventListener("change", load);
 $("#reset").addEventListener("click", () => {
@@ -488,32 +555,44 @@ $("#reset").addEventListener("click", () => {
   state = {}; save(); render(); toast("Comptage vidé");
 });
 
-/* ---------- lignes exportées ---------- */
-const HEAD = ["Date","Secteur","Produit / Référence","Service","Unités par colis","Nombre de colis","Unités hors colis","Quantité totale"];
+/* ---------- choix du service ---------- */
+function openSvc(){
+  $("#svc-list").innerHTML = SERVICES.map(s => {
+    const n = PRODUCTS.filter(p => p.s === s).length;
+    return `<button data-s="${s}" aria-pressed="${service===s}">${s}<span>${n} réf.</span></button>`;
+  }).join("") + `<button data-s="" aria-pressed="${service===""}">Tous les services<span>${PRODUCTS.length} réf.</span></button>`;
+  $("#dsvc").showModal();
+}
+$("#svc-list").addEventListener("click", async e => {
+  const b = e.target.closest("button[data-s]"); if (!b) return;
+  service = b.dataset.s;
+  sector = null;
+  await store.set("svc", service);
+  $("#dsvc").close();
+  const best = LEVELS.map(l => ({id: l.id, n: l.zones.reduce((s,c) => s + progress(c).tot, 0)}))
+                     .sort((a,b) => b.n - a.n)[0];
+  if (best && best.n) level = best.id;
+  render();
+});
+$("#who").addEventListener("click", openSvc);
 
+/* ---------- export ---------- */
+const HEAD = ["Date","Secteur","Produit / Référence","Service","Unités par colis","Nombre de colis","Unités hors colis","Quantité totale"];
 function rows(){
-  return PRODUCTS.filter(p => isCounted(p.id)).map(p => {
-    const r = rec(p.id);
-    return [
-      dateEl.value,
-      p.z1 || "Autres",
-      p.n,
-      p.s,
-      p.u,
-      Number(r.c) || 0,
-      Number(r.l) || 0,
-      totalUnits(p)
-    ];
+  return PRODUCTS.filter(p => isCounted(p.k)).map(p => {
+    const r = rec(p.k);
+    return [dateEl.value, zoneOf(p), p.n, p.s, p.u, Number(r.c)||0, Number(r.l)||0, totalUnits(p)];
   });
 }
+function toast(m){ const t = $("#toast"); t.textContent = m; t.classList.add("on"); setTimeout(() => t.classList.remove("on"), 2600); }
 
-/* ---------- menu export ---------- */
 $("#more").addEventListener("click", e => { e.stopPropagation(); $("#menu").classList.toggle("on"); });
 document.addEventListener("click", () => $("#menu").classList.remove("on"));
 $("#menu").addEventListener("click", e => {
   const m = e.target.closest("button")?.dataset.m; if (!m) return;
   $("#menu").classList.remove("on");
   if (m === "cfg") return openCfg();
+  if (m === "pull") return pullCatalogue(false);
   const r = rows();
   if (!r.length) return toast("Rien à exporter pour l'instant");
   if (m === "csv"){
@@ -530,7 +609,7 @@ $("#menu").addEventListener("click", e => {
   }
 });
 
-/* ---------- synchro Google Sheets ---------- */
+/* ---------- synchro ---------- */
 let pushTimer = null;
 function queuePush(){ clearTimeout(pushTimer); pushTimer = setTimeout(() => push(true), 2500); }
 async function push(silent){
@@ -538,86 +617,86 @@ async function push(silent){
   const r = rows();
   if (!r.length){ if (!silent) toast("Rien à envoyer pour l'instant"); return; }
   sync.status = "wait"; renderPlan();
-  const payload = {token: cfg.token, date: dateEl.value, entetes: HEAD, lignes: r};
   try {
     const res = await fetch(cfg.url, {
-      method: "POST", redirect: "follow",
-      headers: {"Content-Type": "text/plain;charset=utf-8"},
-      body: JSON.stringify(payload)
+      method:"POST", redirect:"follow",
+      headers:{"Content-Type":"text/plain;charset=utf-8"},
+      body: JSON.stringify({token: cfg.token, date: dateEl.value, entetes: HEAD, lignes: r})
     });
     const data = await res.json();
     if (!data.ok) throw new Error(data.error || "refus du script");
-    
     sync.status = "ok";
     sync.at = new Date().toLocaleTimeString("fr-FR", {hour:"2-digit", minute:"2-digit"});
-    sync.msg = data.majSaisie + " lignes dans Saisie";
-
-    // 1. Vibration mobile
-    if (navigator.vibrate) navigator.vibrate([80, 40, 120]);
-
-    // 2. Signal sonore
-    playSuccessSound();
-
-    // 3. Changement visuel sur le bouton
-    const pushBtn = $("#push");
-    if (pushBtn) {
-      pushBtn.textContent = `✓ ${r.length} lignes envoyées !`;
-      pushBtn.style.backgroundColor = "#2e7d32";
-      setTimeout(() => {
-        pushBtn.textContent = "Envoyer";
-        pushBtn.style.backgroundColor = "";
-      }, 3000);
-    }
-
-    if (!silent) toast("✅ " + r.length + " lignes enregistrées avec succès !");
+    sync.msg = data.recus + " lignes · archive " + data.mois;
+    if (navigator.vibrate) navigator.vibrate([80,40,120]);
+    const b = $("#push");
+    b.textContent = "✓ " + r.length + " envoyées"; b.style.backgroundColor = "#2e7d32";
+    setTimeout(() => { b.textContent = "Envoyer"; b.style.backgroundColor = ""; }, 3000);
+    if (!silent) toast("Classeur à jour : archive " + data.mois + ", bilan et récap recalculés");
+    if (!silent && data.inconnus && data.inconnus.length) toast(data.inconnus.length + " produit(s) hors archive : " + data.inconnus.slice(0,2).join(", "));
   } catch (err) {
     sync.status = "err"; sync.msg = "envoi impossible";
-    if (!silent) toast("Envoi impossible : " + err.message + ". Vérifiez l'URL et le déploiement.");
+    if (!silent) toast("Envoi impossible : " + err.message);
   }
   render();
 }
 $("#push").addEventListener("click", () => push(false));
 
+async function pullCatalogue(silent){
+  if (!cfg.url){ if (!silent) toast("Reliez d'abord le classeur"); return; }
+  try {
+    const u = cfg.url + (cfg.url.indexOf("?") > -1 ? "&" : "?") + "action=getData&token=" + encodeURIComponent(cfg.token) + "&t=" + Date.now();
+    const res = await fetch(u, {redirect:"follow"});
+    const d = await res.json();
+    if (!d.ok) throw new Error(d.error || "refus du script");
+    const prods = d.p || d.produits;
+    if (!prods || !prods.length) throw new Error("aucun produit lu");
+    setCatalogue(prods, d.z || d.zones);
+    cat.source = "sheets";
+    cat.at = new Date().toLocaleTimeString("fr-FR", {hour:"2-digit", minute:"2-digit"});
+    await store.set("cat:v2", JSON.stringify({p: prods, z: d.z || d.zones, at: cat.at}));
+    render();
+    if (!silent) toast(prods.length + " produits relus depuis la feuille Produits");
+  } catch (err) {
+    if (!silent) toast("Produits non récupérés : " + err.message);
+  }
+}
+
+/* ---------- config ---------- */
 function openCfg(){ $("#c-status").textContent = cfg.url ? "Relié. " + syncLabel() : "Pas encore relié."; $("#cfg").showModal(); }
 $("#c-close").addEventListener("click", () => $("#cfg").close());
 $("#c-save").addEventListener("click", async () => {
   cfg = {url: $("#c-url").value.trim(), token: $("#c-tok").value.trim(), auto: $("#c-auto").checked};
-  try { await store.set("cfg:gsheet", JSON.stringify(cfg)); } catch(e){}
+  await store.set("cfg:gsheet", JSON.stringify(cfg));
   $("#cfg").close(); renderPlan(); toast("Connexion enregistrée");
 });
 $("#c-test").addEventListener("click", async () => {
   cfg = {url: $("#c-url").value.trim(), token: $("#c-tok").value.trim(), auto: $("#c-auto").checked};
   $("#c-status").textContent = "Envoi en cours…";
   await push(true);
-  $("#c-status").textContent = sync.status === "ok" ? "Réussi : " + sync.msg : "Échec — vérifiez l'URL, la clé et l'accès « Tout le monde ».";
+  await pullCatalogue(true);
+  $("#c-status").textContent = sync.status === "ok"
+    ? "Réussi : " + sync.msg + " · " + cat.n + " produits relus"
+    : "Échec — vérifiez l'URL, la clé et l'accès « Tout le monde ».";
 });
-
-async function refreshDataFromSheets() {
-  if (!cfg.url) return;
-  try {
-    const res = await fetch(cfg.url + "?action=getData");
-    const data = await res.json();
-    if (data.ok && data.p && data.p.length) {
-      PRODUCTS.length = 0;
-      data.p.forEach(item => PRODUCTS.push(item));
-      ZONES.length = 0;
-      data.z.forEach(item => ZONES.push(item));
-      SECTORS.length = 0;
-      ZONES.map(z => ({...z, items: PRODUCTS.filter(p => p.z1 === z.c || p.z2 === z.c)}))
-             .filter(z => z.items.length)
-             .forEach(z => SECTORS.push(z));
-      renderServices();
-      render();
-    }
-  } catch (err) {
-    console.log("Utilisation des données locales");
-  }
+async function loadCfg(){
+  const v = await store.get("cfg:gsheet");
+  if (v){ try { const s = JSON.parse(v); cfg = {url: s.url || cfg.url, token: s.token || cfg.token, auto: s.auto !== undefined ? s.auto : cfg.auto}; } catch(e){} }
+  $("#c-url").value = cfg.url; $("#c-tok").value = cfg.token; $("#c-auto").checked = !!cfg.auto;
 }
 
-loadCfg().then(() => {
-  load();
-  refreshDataFromSheets();
-});
+/* ---------- démarrage ---------- */
+(async function demarrer(){
+  setCatalogue(DATA.p, DATA.z);
+  const c = await store.get("cat:v2");
+  if (c){ try { const j = JSON.parse(c); if (j.p && j.p.length){ setCatalogue(j.p, j.z); cat.source = "sheets"; cat.at = j.at || ""; } } catch(e){} }
+  await loadCfg();
+  const s = await store.get("svc");
+  service = (s === null || s === undefined) ? null : s;
+  await load();
+  if (service === null) openSvc();
+  if (cfg.url) pullCatalogue(true);
+})();
 </script>
 </body>
 </html>
