@@ -207,6 +207,7 @@ dialog::backdrop{background:rgba(18,33,29,.6)}
     <button data-m="copy">Copier pour Google Sheets</button>
     <button data-m="csv">Télécharger le CSV</button>
     <button data-m="pull">Actualiser les produits depuis le classeur</button>
+    <button data-m="new">Ajouter une référence…</button>
     <hr>
     <button data-m="cfg">Connexion Google Sheets…</button>
   </div>
@@ -225,6 +226,28 @@ dialog::backdrop{background:rgba(18,33,29,.6)}
   <div class="actions">
     <button id="dz-clear">Il est à sa place</button>
     <button id="dz-close">Fermer</button>
+  </div>
+</div></dialog>
+
+<dialog id="dnew"><div class="dlg">
+  <h2>Nouvelle référence</h2>
+  <p>Elle est créée directement dans la feuille Produits et reçoit sa ligne dans l'archive. Elle apparaît aussitôt dans la liste de comptage.</p>
+  <label for="n-nom">Intitulé du produit</label>
+  <input type="text" id="n-nom" placeholder="Boîte pâtissière 18x8">
+  <div style="display:flex;gap:10px;flex-wrap:wrap">
+    <div style="flex:1 1 130px"><label for="n-svc">Service</label><select id="n-svc" style="width:100%"></select></div>
+    <div style="flex:1 1 100px"><label for="n-z1">Zone</label><select id="n-z1" style="width:100%"></select></div>
+  </div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap">
+    <div style="flex:1 1 110px"><label for="n-u">Unités / colis</label><input type="text" id="n-u" inputmode="numeric" placeholder="250"></div>
+    <div style="flex:1 1 110px"><label for="n-min">Stock mini</label><input type="text" id="n-min" inputmode="numeric" placeholder="0"></div>
+  </div>
+  <label for="n-four">Fournisseur (facultatif)</label>
+  <input type="text" id="n-four" placeholder="Paredes">
+  <div class="status" id="n-status"></div>
+  <div class="actions">
+    <button class="go" id="n-save">Créer la référence</button>
+    <button id="n-close">Annuler</button>
   </div>
 </div></dialog>
 
@@ -247,7 +270,7 @@ dialog::backdrop{background:rgba(18,33,29,.6)}
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
-const DATA = {"p": [{"n": "Bol rond kraft 750ml 150x60mm", "s": "Usine 16", "z1": "A", "z2": null, "u": 750}, {"n": "Boîte triangle kraft", "s": "Usine 16", "z1": "A", "z2": null, "u": 500}, {"n": "Couvercle Ramequin pulpe blanc 30CC", "s": "Usine 16", "z1": "A", "z2": null, "u": 50}, {"n": "Ramequin pulpe blanc 30CC", "s": "Usine 16", "z1": "A", "z2": null, "u": 75}, {"n": "CORNIERE 160", "s": "Emballage", "z1": "B", "z2": "E", "u": 50}, {"n": "D20 IMPRIME", "s": "Emballage", "z1": "B", "z2": "E", "u": 336}, {"n": "Film étirable 270x0,45", "s": "Emballage", "z1": "Autres", "z2": "E", "u": 11}, {"n": "Fond Carton LX1708RKB 2 parts", "s": "Usine 16", "z1": "A", "z2": null, "u": 240}, {"n": "Fond Carton LX995CKBC1FPR 1 part", "s": "Usine 16", "z1": "A", "z2": null, "u": 880}, {"n": "GALLIA A13 IMPRIME", "s": "Emballage", "z1": "A", "z2": "E", "u": 275}, {"n": "GALLIAA12 - A12", "s": "Emballage", "z1": "A", "z2": "E", "u": 20}, {"n": "HOUSSE ECHELLE GM77X37.5X190 LOT X25", "s": "Prod", "z1": "A", "z2": null, "u": 100}, {"n": "Packaging individuel triangulaire (500unités)", "s": "Usine 16", "z1": "A", "z2": null, "u": 200}, {"n": "Papier.CUISSON 340x170 BLANC intercalaire", "s": "Emballage", "z1": "A", "z2": null, "u": 500}, {"n": "Poches jetable", "s": "Hygiène", "z1": "A", "z2": null, "u": 500}, {"n": "SAC CROISSANT 103 K BRUN NUAGE X1000", "s": "Usine 16", "z1": "A", "z2": null, "u": 1000}, {"n": "Sachet pain / Balluchons chevrons", "s": "Usine 16", "z1": "A", "z2": null, "u": 75}, {"n": "Sachet à baguette", "s": "Usine 16", "z1": "A", "z2": null, "u": 500}, {"n": "Tabliers blancs", "s": "Hygiène", "z1": "A", "z2": null, "u": 100}, {"n": "Bobine papier calage", "s": "Emballage", "z1": "E", "z2": null, "u": 1}, {"n": "COUV GOBELET 20/30CL PULPE BLC", "s": "Usine 16", "z1": "C", "z2": null, "u": 1000}, {"n": "GALLIAA10 - Carton A10", "s": "Emballage", "z1": "B", "z2": null, "u": 1}, {"n": "GOBELET CARTON BRUN 24CL DIAM 80MM H 92MM COLIS DE 1000", "s": "Usine 16", "z1": "B", "z2": null, "u": 1000}, {"n": "Boîte pâtissière 18x8", "s": "Usine 16", "z1": "C", "z2": "CC", "u": 50}, {"n": "Boîte pâtissière 29x8", "s": "Usine 16", "z1": "C", "z2": "CC", "u": 25}, {"n": "Moule Nordia 2 pers (1400 pcs)", "s": "Prod", "z1": "C", "z2": "CC", "u": 1400}, {"n": "Flacon Twist", "s": "Usine 16", "z1": "C", "z2": "CC", "u": 100}, {"n": "BOUTEIL.PET RONDE TRANSP 0,25L x440 unités / colis", "s": "Usine 16", "z1": "C", "z2": "CC", "u": 440}, {"n": "Papier ingraissable brun 25x33cm", "s": "Usine 16", "z1": "C", "z2": "CC", "u": 500}, {"n": "SAC FD/CAISSE SOUFFLET PEHD 12μ 750+200/200X650MM COLIS DE 500 EN LIASSE", "s": "Emballage", "z1": "C", "z2": "CC", "u": 100}, {"n": "SAC KRAFT BRUN POIGNEES PLATES 260X200X280 MM", "s": "Usine 16", "z1": "C", "z2": "CC", "u": 250}, {"n": "Sac traiteur blanc36,5 x 32 x 33", "s": "Usine 16", "z1": "C", "z2": "CC", "u": 200}, {"n": "Couvercle APET DS09H65 1 part", "s": "Usine 16", "z1": "A", "z2": null, "u": 880}, {"n": "Couvercle APET DS1710H65 2 parts", "s": "Usine 16", "z1": "A", "z2": null, "u": 240}, {"n": "Couvercle flacon twist", "s": "Usine 16", "z1": "A", "z2": null, "u": 100}, {"n": "Moule baronnet", "s": "Prod", "z1": "D", "z2": "DD", "u": 175}, {"n": "Moule Nordia 12 pers (180/carton)", "s": "Prod", "z1": "D", "z2": "DD", "u": 180}, {"n": "Moule Nordia 6 pers (720/carton)", "s": "Prod", "z1": "D", "z2": "DD", "u": 720}, {"n": "Moule octo 145", "s": "Prod", "z1": "D", "z2": "DD", "u": 400}, {"n": "Moule octopuce 110", "s": "Prod", "z1": "D", "z2": "DD", "u": 400}, {"n": "Moule rond nord optima", "s": "Prod", "z1": "D", "z2": "DD", "u": 720}, {"n": "Moules PIE ronds GOLDEN diamètre 85 x 32 mm ht (Diamètre du haut 106 mm)", "s": "Prod", "z1": "D", "z2": "DD", "u": 1800}, {"n": "Papier sulfurisé siliconé 41gr 2 faces 60 x 40cm - Ramette de 500 feuilles molto/crokus", "s": "Prod", "z1": "D", "z2": "DD", "u": 500}, {"n": "TPH 106 H 32 GOLDEN (réf. S00107)", "s": "Prod", "z1": "D", "z2": "DD", "u": 1800}, {"n": "TPH 80 H 34 GOLDEN (réf. S00080)", "s": "Prod", "z1": "D", "z2": "DD", "u": 1800}, {"n": "BP18X8 - Boîte pâtissière logoté 18x8 (SAVARY)", "s": "Usine 16", "z1": "CC", "z2": "C", "u": 250}, {"n": "BP18X8 - Boîte pâtissière logoté 29x8 (SAVARY)", "s": "Usine 16", "z1": "CC", "z2": "C", "u": 75}, {"n": "GOBELET 10/12CL BRUN 100X20", "s": "Usine 16", "z1": "CC", "z2": "C", "u": 60}, {"n": "GOBELET 24CL BRUN 50x20", "s": "Usine 16", "z1": "CC", "z2": "C", "u": 50}, {"n": "Film 2x450 (machine)", "s": "Emballage", "z1": "CC", "z2": "C", "u": 24}, {"n": "Film 2x250 (machine)", "s": "Emballage", "z1": "CC", "z2": "C", "u": 24}, {"n": "Moule bois individuel cocotte 150 ML", "s": "Prod", "z1": "DD", "z2": "D", "u": 360}, {"n": "BOITE PATISSIERE LEBHAR 18X15 (SAVARY)", "s": "Usine 16", "z1": "CC", "z2": "C", "u": 300}, {"n": "BOITE PATISSIERE LEBHAR 23X8 (SAVARY)", "s": "Usine 16", "z1": "CC", "z2": "C", "u": 466}, {"n": "Etiquette 100x150", "s": "Emballage", "z1": "E", "z2": null, "u": 500}, {"n": "Etiquette 70 x 80 mm", "s": "Emballage", "z1": "E", "z2": null, "u": 10000}, {"n": "Etiquette 70x40", "s": "Emballage", "z1": "E", "z2": null, "u": 37500}, {"n": "Plaque or focaccia 150gr 12x18cm", "s": "Emballage", "z1": "E", "z2": null, "u": 200}, {"n": "ROND SIMPLE FACE 18CM OR/NOIR - PQT 100", "s": "Emballage", "z1": "E", "z2": null, "u": 100}, {"n": "ROND SIMPLE FACE 22CM OR/NOIR - PQT 100", "s": "Emballage", "z1": "E", "z2": null, "u": 200}, {"n": "ROND SIMPLE FACE 26CM OR/NOIR - PQT 100", "s": "Emballage", "z1": "E", "z2": null, "u": 100}, {"n": "Ruban adhésif DOUCETTYS", "s": "Emballage", "z1": "E", "z2": null, "u": 36}, {"n": "Ruban adhésif SAVARY", "s": "Emballage", "z1": "E", "z2": null, "u": 36}, {"n": "blouse plp 40g blanc XL", "s": "Hygiène", "z1": "F", "z2": null, "u": 50}, {"n": "Brosse à cuve fibres dures alimentaire PLP 20,5cm bleu Vikan", "s": "Hygiène", "z1": "F", "z2": null, "u": 1}, {"n": "Cache-barbe PLP 16g/m² blanc Paredes( Colis de 10 sachets de 100)", "s": "Hygiène", "z1": "F", "z2": null, "u": 1000}, {"n": "Charlotte blanche à clip accordéon Ø 48cm Non tissé 10X100 - Ct. 1000", "s": "Hygiène", "z1": "F", "z2": null, "u": 1000}, {"n": "Nettoyant vaisselle machine eau dure Ecolabel Paredes Lava Wash HW bidon de 20L (1 bidon)", "s": "Hygiène", "z1": "F", "z2": null, "u": 1}, {"n": "Traitement des bacs à graisse et canalisations Paredes Expert Ciba Trap bidon de 5L (Colis de 2 bidons de 5L)", "s": "Hygiène", "z1": "F", "z2": null, "u": 1}, {"n": "Combinaison de travail (Colis de 25)", "s": "Hygiène", "z1": "F", "z2": null, "u": 25}, {"n": "DETERG DESINF CIBA BIONYM 21KG", "s": "Hygiène", "z1": "F", "z2": null, "u": 1}, {"n": "Décapant four Ecocert Paredes Ciba Dkap bidon de 5L", "s": "Hygiène", "z1": "F", "z2": null, "u": 1}, {"n": "Détartrant cuisine Ecocert Paredes Ciba Dkal bidon de 5L (colis de 2 bidons)", "s": "Hygiène", "z1": "F", "z2": null, "u": 1}, {"n": "Eponge inox double face Tampel (lot de 5)", "s": "Hygiène", "z1": "F", "z2": null, "u": 5}, {"n": "Eponge spirale Inox 60g - Sachet de 10", "s": "Hygiène", "z1": "F", "z2": null, "u": 50}, {"n": "Essuyage dévidage central Paredes blanc 450 formats 18,2 x 30 cm Ecolabel ( colis de 6)", "s": "Hygiène", "z1": "F", "z2": null, "u": 9}, {"n": "Gant à usage unique nitrile Paredes Ecofeeds bleu lavande non poudré taille L(6/7) (colis de 10 boites de 200)", "s": "Hygiène", "z1": "F", "z2": null, "u": 200}, {"n": "Gant à usage unique nitrile Paredes Ecofeeds bleu lavande non poudré taille S(Colis de 10 boites de 200)", "s": "Hygiène", "z1": "F", "z2": null, "u": 200}, {"n": "Gant à usage unique nitrile Paredes Ecofeeds bleu lavande non poudré taille XL (6/7) (colis de 10 boites de 200)", "s": "Hygiène", "z1": "F", "z2": null, "u": 200}, {"n": "Gant à usage unique nitrile Paredes Ecofeeds noir non poudré taille L (8/9)", "s": "Hygiène", "z1": "F", "z2": null, "u": 100}, {"n": "Gant à usage unique nitrile Paredes Ecofeeds noir non poudré taille S (8/9)", "s": "Hygiène", "z1": "F", "z2": null, "u": 100}, {"n": "Gant à usage unique nitrile PROP Ecofeeds bleu lavande non poudré M (colis de 10 boites de 200)", "s": "Hygiène", "z1": "F", "z2": null, "u": 200}, {"n": "GHA Gel hydroalcoolique DAILYK PREMIUM Flacon pompe 500ml", "s": "Hygiène", "z1": "F", "z2": null, "u": 18}, {"n": "Kit visiteur (1 blouse, 1 charlotte, 1 masque, 1 paire de surchaussures) Hopen Taille Unique (lot de 100)", "s": "Hygiène", "z1": "F", "z2": null, "u": 100}, {"n": "LAVETTE AJOURÉE Non tissée ajourée 35x50cm - Sachet de 25", "s": "Hygiène", "z1": "F", "z2": null, "u": 25}, {"n": "Lingettes désinfectantes mains et surfaces Laboratoire Garcin Acti'septyl DSR (Colis de 12 boites de 120)", "s": "Hygiène", "z1": "F", "z2": null, "u": 120}, {"n": "Liquide vaisselle plonge manuelle citron Paredes Access flacon de 1L", "s": "Hygiène", "z1": "F", "z2": null, "u": 1}, {"n": "Lotion désinfectante Paredes Medi Asept recharge de 1400ml (Colis de 4 recharges de 1400ml)", "s": "Hygiène", "z1": "F", "z2": null, "u": 1}, {"n": "Manche alimentaire PLP 145cm bleu Maine Brosserie (1)", "s": "Hygiène", "z1": "F", "z2": null, "u": 1}, {"n": "Masque médical type II ( 1 boite de 60)", "s": "Hygiène", "z1": "F", "z2": null, "u": 60}, {"n": "Mocassin de sécurité Bicap Cassini S3 SRC noir pointure 39 (1 paire)", "s": "Hygiène", "z1": "F", "z2": null, "u": 2}, {"n": "Nettoyant vitres IJN pulvérisateur de 750ml (Colis de 12 pulvérisateurs)", "s": "Hygiène", "z1": "F", "z2": null, "u": 5}, {"n": "Papier toilette rouleau géant Jumbo blanc 380m 8,3 x 17,5 cm Ecolabel Paredes (colis de 6 rouleaux)", "s": "Hygiène", "z1": "F", "z2": null, "u": 6}, {"n": "Pastilles Chlorées (1 colis de 25kg)", "s": "Hygiène", "z1": "F", "z2": null, "u": 4}, {"n": "RACLETTE SOL MOUSS 60CM BLEU (1)", "s": "Hygiène", "z1": "F", "z2": null, "u": 6}, {"n": "Sac Poubelle 30L", "s": "Hygiène", "z1": "F", "z2": null, "u": 500}, {"n": "Sac poubelle PE BD 150L noir 68µ PAREDES (Colis de 10 rouleaux de 10)", "s": "Hygiène", "z1": "F", "z2": null, "u": 10}, {"n": "Surchaussure anti-glisse Tiger grip avec embout aluminium/titane caoutchouc noir taille L (41/44)", "s": "Hygiène", "z1": "F", "z2": null, "u": 2}, {"n": "Surchaussure anti-glisse Tiger grip avec embout aluminium/titane caoutchouc noir taille M (37/40)", "s": "Hygiène", "z1": "F", "z2": null, "u": 1}, {"n": "Surchaussure anti-glisse Tiger grip avec embout aluminium/titane caoutchouc noir taille S (34/36)", "s": "Hygiène", "z1": "F", "z2": null, "u": 1}, {"n": "Tablette linge désinfectante Paredes Neli Desitabs seau de 125x25g", "s": "Hygiène", "z1": "F", "z2": null, "u": 1}, {"n": "BOMBE A GRAISSE 600MLGRAISS VIT", "s": "Boulangerie", "z1": "Autres", "z2": null, "u": 1}, {"n": "Moule Nordia 1 pers (2520u)", "s": "Prod", "z1": "Autres", "z2": null, "u": 2520}, {"n": "Moule marquis", "s": "Prod", "z1": "Autres", "z2": null, "u": 200}, {"n": "Moule pani-tourte - H 5 cm - Ø 16cm ( fabrication artisanal)", "s": "Prod", "z1": "Autres", "z2": null, "u": 150}, {"n": "Moule pani-tourte - H 5 cm - Ø 16cm atelier papille", "s": "Prod", "z1": "Autres", "z2": null, "u": 150}, {"n": "Moule pani-tourte - H 5cm - Ø 16cm", "s": "Prod", "z1": "Autres", "z2": null, "u": 150}, {"n": "Moule pani-tourte - H 5cm - Ø 20cm", "s": "Prod", "z1": "Autres", "z2": null, "u": 90}, {"n": "Moule pani-tourte - H 5cm - Ø 24cm", "s": "Prod", "z1": "Autres", "z2": null, "u": 60}, {"n": "Porte gobelet", "s": "Usine 16", "z1": "A", "z2": null, "u": 1}], "z": [{"c": "A", "l": "RDC — rack mur gauche", "n": "RDC"}, {"c": "B", "l": "RDC — bloc central, allée gauche", "n": "RDC"}, {"c": "C", "l": "RDC — bloc central, allée droite", "n": "RDC"}, {"c": "D", "l": "RDC — rack mur droit", "n": "RDC"}, {"c": "AA", "l": "R+1 — au-dessus de la zone A", "n": "R+1"}, {"c": "BB", "l": "R+1 — au-dessus de la zone B", "n": "R+1"}, {"c": "CC", "l": "R+1 — au-dessus de la zone C", "n": "R+1"}, {"c": "DD", "l": "R+1 — au-dessus de la zone D", "n": "R+1"}, {"c": "E", "l": "Réserve — en dessous du rez-de-chaussée", "n": "Réserve"}, {"c": "F", "l": "Salle Hygiène Paredes", "n": "F"}, {"c": "Autres", "l": "À classer — emplacement à préciser", "n": "Autres"}]};
+const DATA = {"p": [{"n": "Bol rond kraft 750ml 150x60mm", "s": "Usine 16", "z1": "A", "z2": null, "u": 750}, {"n": "Boîte triangle kraft", "s": "Usine 16", "z1": "A", "z2": null, "u": 500}, {"n": "Couvercle Ramequin pulpe blanc 30CC", "s": "Usine 16", "z1": "A", "z2": null, "u": 50}, {"n": "Ramequin pulpe blanc 30CC", "s": "Usine 16", "z1": "A", "z2": null, "u": 75}, {"n": "CORNIERE 160", "s": "Emballage", "z1": "B", "z2": "E", "u": 50}, {"n": "D20 IMPRIME", "s": "Emballage", "z1": "B", "z2": "E", "u": 336}, {"n": "Film étirable 270x0,45", "s": "Emballage", "z1": "Autres", "z2": "E", "u": 11}, {"n": "Fond Carton LX1708RKB 2 parts", "s": "Usine 16", "z1": "A", "z2": null, "u": 240}, {"n": "Fond Carton LX995CKBC1FPR 1 part", "s": "Usine 16", "z1": "A", "z2": null, "u": 880}, {"n": "GALLIA A13 IMPRIME", "s": "Emballage", "z1": "A", "z2": "E", "u": 275}, {"n": "GALLIAA12 - A12", "s": "Emballage", "z1": "A", "z2": "E", "u": 20}, {"n": "HOUSSE ECHELLE GM77X37.5X190 LOT X25", "s": "Prod", "z1": "A", "z2": null, "u": 100}, {"n": "Packaging individuel triangulaire (500unités)", "s": "Usine 16", "z1": "A", "z2": null, "u": 200}, {"n": "Papier.CUISSON 340x170 BLANC intercalaire", "s": "Emballage", "z1": "A", "z2": null, "u": 500}, {"n": "Poches jetable", "s": "Hygiène", "z1": "A", "z2": null, "u": 500}, {"n": "SAC CROISSANT 103 K BRUN NUAGE X1000", "s": "Usine 16", "z1": "A", "z2": null, "u": 1000}, {"n": "Sachet pain / Balluchons chevrons", "s": "Usine 16", "z1": "A", "z2": null, "u": 75}, {"n": "Sachet à baguette", "s": "Usine 16", "z1": "A", "z2": null, "u": 500}, {"n": "Tabliers blancs", "s": "Hygiène", "z1": "A", "z2": null, "u": 100}, {"n": "Bobine papier calage", "s": "Emballage", "z1": "E", "z2": null, "u": 1}, {"n": "COUV GOBELET 20/30CL PULPE BLC", "s": "Usine 16", "z1": "C", "z2": null, "u": 1000}, {"n": "GALLIAA10 - Carton A10", "s": "Emballage", "z1": "B", "z2": null, "u": 1}, {"n": "GOBELET CARTON BRUN 24CL DIAM 80MM H 92MM COLIS DE 1000", "s": "Usine 16", "z1": "C", "z2": null, "u": 1000}, {"n": "Boîte pâtissière 18x8", "s": "Usine 16", "z1": "C", "z2": "CC", "u": 50}, {"n": "Boîte pâtissière 29x8", "s": "Usine 16", "z1": "C", "z2": "CC", "u": 25}, {"n": "Moule Nordia 2 pers (1400 pcs)", "s": "Prod", "z1": "C", "z2": "CC", "u": 1400}, {"n": "Flacon Twist", "s": "Usine 16", "z1": "C", "z2": "CC", "u": 100}, {"n": "BOUTEIL.PET RONDE TRANSP 0,25L x440 unités / colis", "s": "Usine 16", "z1": "C", "z2": "CC", "u": 440}, {"n": "Papier ingraissable brun 25x33cm", "s": "Usine 16", "z1": "C", "z2": "CC", "u": 500}, {"n": "SAC FD/CAISSE SOUFFLET PEHD 12μ 750+200/200X650MM COLIS DE 500 EN LIASSE", "s": "Emballage", "z1": "C", "z2": "CC", "u": 100}, {"n": "SAC KRAFT BRUN POIGNEES PLATES 260X200X280 MM", "s": "Usine 16", "z1": "C", "z2": "CC", "u": 250}, {"n": "Sac traiteur blanc36,5 x 32 x 33", "s": "Usine 16", "z1": "C", "z2": "CC", "u": 200}, {"n": "Couvercle APET DS09H65 1 part", "s": "Usine 16", "z1": "A", "z2": null, "u": 880}, {"n": "Couvercle APET DS1710H65 2 parts", "s": "Usine 16", "z1": "A", "z2": null, "u": 240}, {"n": "Couvercle flacon twist", "s": "Usine 16", "z1": "A", "z2": null, "u": 100}, {"n": "Moule baronnet", "s": "Prod", "z1": "D", "z2": "DD", "u": 175}, {"n": "Moule Nordia 12 pers (180/carton)", "s": "Prod", "z1": "D", "z2": "DD", "u": 180}, {"n": "Moule Nordia 6 pers (720/carton)", "s": "Prod", "z1": "D", "z2": "DD", "u": 720}, {"n": "Moule octo 145", "s": "Prod", "z1": "D", "z2": "DD", "u": 400}, {"n": "Moule octopuce 110", "s": "Prod", "z1": "D", "z2": "DD", "u": 400}, {"n": "Moule rond nord optima", "s": "Prod", "z1": "D", "z2": "DD", "u": 720}, {"n": "Moules PIE ronds GOLDEN diamètre 85 x 32 mm ht (Diamètre du haut 106 mm)", "s": "Prod", "z1": "D", "z2": "DD", "u": 1800}, {"n": "Papier sulfurisé siliconé 41gr 2 faces 60 x 40cm - Ramette de 500 feuilles molto/crokus", "s": "Prod", "z1": "D", "z2": "DD", "u": 500}, {"n": "TPH 106 H 32 GOLDEN (réf. S00107)", "s": "Prod", "z1": "D", "z2": "DD", "u": 1800}, {"n": "TPH 80 H 34 GOLDEN (réf. S00080)", "s": "Prod", "z1": "D", "z2": "DD", "u": 1800}, {"n": "BP18X8 - Boîte pâtissière logoté 18x8 (SAVARY)", "s": "Usine 16", "z1": "CC", "z2": "C", "u": 250}, {"n": "BP18X8 - Boîte pâtissière logoté 29x8 (SAVARY)", "s": "Usine 16", "z1": "CC", "z2": "C", "u": 75}, {"n": "GOBELET 10/12CL BRUN 100X20", "s": "Usine 16", "z1": "CC", "z2": "C", "u": 60}, {"n": "GOBELET 24CL BRUN 50x20", "s": "Usine 16", "z1": "CC", "z2": "C", "u": 50}, {"n": "Film 2x450 (machine)", "s": "Emballage", "z1": "CC", "z2": "C", "u": 24}, {"n": "Film 2x250 (machine)", "s": "Emballage", "z1": "CC", "z2": "C", "u": 24}, {"n": "Moule bois individuel cocotte 150 ML", "s": "Prod", "z1": "DD", "z2": "D", "u": 360}, {"n": "BOITE PATISSIERE LEBHAR 18X15 (SAVARY)", "s": "Usine 16", "z1": "CC", "z2": "C", "u": 300}, {"n": "BOITE PATISSIERE LEBHAR 23X8 (SAVARY)", "s": "Usine 16", "z1": "CC", "z2": "C", "u": 466}, {"n": "Etiquette 100x150", "s": "Emballage", "z1": "E", "z2": null, "u": 500}, {"n": "Etiquette 70 x 80 mm", "s": "Emballage", "z1": "E", "z2": null, "u": 10000}, {"n": "Etiquette 70x40", "s": "Emballage", "z1": "E", "z2": null, "u": 37500}, {"n": "Plaque or focaccia 150gr 12x18cm", "s": "Emballage", "z1": "E", "z2": null, "u": 200}, {"n": "ROND SIMPLE FACE 18CM OR/NOIR - PQT 100", "s": "Emballage", "z1": "E", "z2": null, "u": 100}, {"n": "ROND SIMPLE FACE 22CM OR/NOIR - PQT 100", "s": "Emballage", "z1": "E", "z2": null, "u": 200}, {"n": "ROND SIMPLE FACE 26CM OR/NOIR - PQT 100", "s": "Emballage", "z1": "E", "z2": null, "u": 100}, {"n": "Ruban adhésif DOUCETTYS", "s": "Emballage", "z1": "E", "z2": null, "u": 36}, {"n": "Ruban adhésif SAVARY", "s": "Emballage", "z1": "E", "z2": null, "u": 36}, {"n": "blouse plp 40g blanc XL", "s": "Hygiène", "z1": "F", "z2": null, "u": 50}, {"n": "Brosse à cuve fibres dures alimentaire PLP 20,5cm bleu Vikan", "s": "Hygiène", "z1": "F", "z2": null, "u": 1}, {"n": "Cache-barbe PLP 16g/m² blanc Paredes( Colis de 10 sachets de 100)", "s": "Hygiène", "z1": "F", "z2": null, "u": 1000}, {"n": "Charlotte blanche à clip accordéon Ø 48cm Non tissé 10X100 - Ct. 1000", "s": "Hygiène", "z1": "F", "z2": null, "u": 1000}, {"n": "Nettoyant vaisselle machine eau dure Ecolabel Paredes Lava Wash HW bidon de 20L (1 bidon)", "s": "Hygiène", "z1": "F", "z2": null, "u": 1}, {"n": "Traitement des bacs à graisse et canalisations Paredes Expert Ciba Trap bidon de 5L (Colis de 2 bidons de 5L)", "s": "Hygiène", "z1": "F", "z2": null, "u": 1}, {"n": "Combinaison de travail (Colis de 25)", "s": "Hygiène", "z1": "F", "z2": null, "u": 25}, {"n": "DETERG DESINF CIBA BIONYM 21KG", "s": "Hygiène", "z1": "F", "z2": null, "u": 1}, {"n": "Décapant four Ecocert Paredes Ciba Dkap bidon de 5L", "s": "Hygiène", "z1": "F", "z2": null, "u": 1}, {"n": "Détartrant cuisine Ecocert Paredes Ciba Dkal bidon de 5L (colis de 2 bidons)", "s": "Hygiène", "z1": "F", "z2": null, "u": 1}, {"n": "Eponge inox double face Tampel (lot de 5)", "s": "Hygiène", "z1": "F", "z2": null, "u": 5}, {"n": "Eponge spirale Inox 60g - Sachet de 10", "s": "Hygiène", "z1": "F", "z2": null, "u": 50}, {"n": "Essuyage dévidage central Paredes blanc 450 formats 18,2 x 30 cm Ecolabel ( colis de 6)", "s": "Hygiène", "z1": "F", "z2": null, "u": 9}, {"n": "Gant à usage unique nitrile Paredes Ecofeeds bleu lavande non poudré taille L(6/7) (colis de 10 boites de 200)", "s": "Hygiène", "z1": "F", "z2": null, "u": 200}, {"n": "Gant à usage unique nitrile Paredes Ecofeeds bleu lavande non poudré taille S(Colis de 10 boites de 200)", "s": "Hygiène", "z1": "F", "z2": null, "u": 200}, {"n": "Gant à usage unique nitrile Paredes Ecofeeds bleu lavande non poudré taille XL (6/7) (colis de 10 boites de 200)", "s": "Hygiène", "z1": "F", "z2": null, "u": 200}, {"n": "Gant à usage unique nitrile Paredes Ecofeeds noir non poudré taille L (8/9)", "s": "Hygiène", "z1": "F", "z2": null, "u": 100}, {"n": "Gant à usage unique nitrile Paredes Ecofeeds noir non poudré taille S (8/9)", "s": "Hygiène", "z1": "F", "z2": null, "u": 100}, {"n": "Gant à usage unique nitrile PROP Ecofeeds bleu lavande non poudré M (colis de 10 boites de 200)", "s": "Hygiène", "z1": "F", "z2": null, "u": 200}, {"n": "GHA Gel hydroalcoolique DAILYK PREMIUM Flacon pompe 500ml", "s": "Hygiène", "z1": "F", "z2": null, "u": 18}, {"n": "Kit visiteur (1 blouse, 1 charlotte, 1 masque, 1 paire de surchaussures) Hopen Taille Unique (lot de 100)", "s": "Hygiène", "z1": "F", "z2": null, "u": 100}, {"n": "LAVETTE AJOURÉE Non tissée ajourée 35x50cm - Sachet de 25", "s": "Hygiène", "z1": "F", "z2": null, "u": 25}, {"n": "Lingettes désinfectantes mains et surfaces Laboratoire Garcin Acti'septyl DSR (Colis de 12 boites de 120)", "s": "Hygiène", "z1": "F", "z2": null, "u": 120}, {"n": "Liquide vaisselle plonge manuelle citron Paredes Access flacon de 1L", "s": "Hygiène", "z1": "F", "z2": null, "u": 1}, {"n": "Lotion désinfectante Paredes Medi Asept recharge de 1400ml (Colis de 4 recharges de 1400ml)", "s": "Hygiène", "z1": "F", "z2": null, "u": 1}, {"n": "Manche alimentaire PLP 145cm bleu Maine Brosserie (1)", "s": "Hygiène", "z1": "F", "z2": null, "u": 1}, {"n": "Masque médical type II ( 1 boite de 60)", "s": "Hygiène", "z1": "F", "z2": null, "u": 60}, {"n": "Mocassin de sécurité Bicap Cassini S3 SRC noir pointure 39 (1 paire)", "s": "Hygiène", "z1": "F", "z2": null, "u": 2}, {"n": "Nettoyant vitres IJN pulvérisateur de 750ml (Colis de 12 pulvérisateurs)", "s": "Hygiène", "z1": "F", "z2": null, "u": 5}, {"n": "Papier toilette rouleau géant Jumbo blanc 380m 8,3 x 17,5 cm Ecolabel Paredes (colis de 6 rouleaux)", "s": "Hygiène", "z1": "F", "z2": null, "u": 6}, {"n": "Pastilles Chlorées (1 colis de 25kg)", "s": "Hygiène", "z1": "F", "z2": null, "u": 4}, {"n": "RACLETTE SOL MOUSS 60CM BLEU (1)", "s": "Hygiène", "z1": "F", "z2": null, "u": 6}, {"n": "Sac Poubelle 30L", "s": "Hygiène", "z1": "F", "z2": null, "u": 500}, {"n": "Sac poubelle PE BD 150L noir 68µ PAREDES (Colis de 10 rouleaux de 10)", "s": "Hygiène", "z1": "F", "z2": null, "u": 10}, {"n": "Surchaussure anti-glisse Tiger grip avec embout aluminium/titane caoutchouc noir taille L (41/44)", "s": "Hygiène", "z1": "F", "z2": null, "u": 2}, {"n": "Surchaussure anti-glisse Tiger grip avec embout aluminium/titane caoutchouc noir taille M (37/40)", "s": "Hygiène", "z1": "F", "z2": null, "u": 1}, {"n": "Surchaussure anti-glisse Tiger grip avec embout aluminium/titane caoutchouc noir taille S (34/36)", "s": "Hygiène", "z1": "F", "z2": null, "u": 1}, {"n": "Tablette linge désinfectante Paredes Neli Desitabs seau de 125x25g", "s": "Hygiène", "z1": "F", "z2": null, "u": 1}, {"n": "BOMBE A GRAISSE 600MLGRAISS VIT", "s": "Boulangerie", "z1": "Autres", "z2": null, "u": 1}, {"n": "Moule Nordia 1 pers (2520u)", "s": "Prod", "z1": "Autres", "z2": null, "u": 2520}, {"n": "Moule marquis", "s": "Prod", "z1": "Autres", "z2": null, "u": 200}, {"n": "Moule pani-tourte - H 5 cm - Ø 16cm ( fabrication artisanal)", "s": "Prod", "z1": "Autres", "z2": null, "u": 150}, {"n": "Moule pani-tourte - H 5 cm - Ø 16cm atelier papille", "s": "Prod", "z1": "Autres", "z2": null, "u": 150}, {"n": "Moule pani-tourte - H 5cm - Ø 16cm", "s": "Prod", "z1": "Autres", "z2": null, "u": 150}, {"n": "Moule pani-tourte - H 5cm - Ø 20cm", "s": "Prod", "z1": "Autres", "z2": null, "u": 90}, {"n": "Moule pani-tourte - H 5cm - Ø 24cm", "s": "Prod", "z1": "Autres", "z2": null, "u": 60}, {"n": "Porte gobelet", "s": "Usine 16", "z1": "A", "z2": null, "u": 1}], "z": [{"c": "A", "l": "RDC — rack mur gauche", "n": "RDC"}, {"c": "B", "l": "RDC — bloc central, allée gauche", "n": "RDC"}, {"c": "C", "l": "RDC — bloc central, allée droite", "n": "RDC"}, {"c": "D", "l": "RDC — rack mur droit", "n": "RDC"}, {"c": "AA", "l": "R+1 — au-dessus de la zone A", "n": "R+1"}, {"c": "BB", "l": "R+1 — au-dessus de la zone B", "n": "R+1"}, {"c": "CC", "l": "R+1 — au-dessus de la zone C", "n": "R+1"}, {"c": "DD", "l": "R+1 — au-dessus de la zone D", "n": "R+1"}, {"c": "E", "l": "Réserve — en dessous du rez-de-chaussée", "n": "Réserve"}, {"c": "F", "l": "Salle Hygiène Paredes", "n": "F"}, {"c": "Autres", "l": "À classer — emplacement à préciser", "n": "Autres"}]};
 
 /* ---------- catalogue (rafraîchi depuis la feuille Produits) ---------- */
 let PRODUCTS = [], ZONES = [], SEC = {}, SERVICES = [];
@@ -282,7 +305,7 @@ let state = {};              // clé produit -> {c, l, z, e}
 let service = null;          // null = pas encore choisi ; "" = tous les services
 let sector = null;           // null = toutes les zones du service
 let level = "RDC", onlyTodo = false, query = "", flagKey = null;
-let cfg = {url:"https://script.google.com/macros/s/AKfycbwATRVuj5KiCTTnzLdZHCTxIv4BR2uB8obrFOslkcLjC7QQA7yk4S7tbNh0ZdKfoU4oSQ/exec", token:"553171", auto:true};
+let cfg = {url:"https://script.google.com/macros/s/AKfycbyqObF3wRnKHwdRRQSTawKyDv5bTHyz_ek2a6B5PoGMQGaTyFpOvf__5IO7iFTcDtHaWg/exec", token:"553171", auto:true};
 let sync = {status:"idle", at:null, msg:""};
 
 const $ = s => document.querySelector(s);
@@ -381,7 +404,7 @@ function planReserve(){
     <g class="zone ${g.state}${sector==="E"?" sel":""}" data-z="E" ${g.tot?'tabindex="0" role="button"':""} aria-label="Zone E">
       <rect class="plain" x="20" y="22" width="300" height="208" rx="4"/>
       <text class="zc ink" x="170" y="128" style="font-size:26px">E</text>
-      <text class="zn ink" x="170" y="100">${g.tot ? g.done+"/"+g.tot+" comptés" : "aucun produit ici"}</text>
+      <text class="zn ink" x="170" y="150">${g.tot ? g.done+"/"+g.tot+" comptés" : ""}</text>
     </g>
     ${rack("E-01", 168, 30, 52, 24)}
     <rect x="228" y="26" width="34" height="8" class="struct"/><text class="lbl sm" x="245" y="48">PORTE</text>
@@ -404,12 +427,10 @@ function planF(){
       <rect class="plain" x="122" y="34" width="96" height="182" rx="2"/>
       ${shelves}
       <text class="zc ink" x="170" y="52" style="font-size:24px">F</text>
-      <text class="zn ink" x="170" y="70">${g.tot ? g.done+"/"+g.tot+" comptés" : "aucun produit ici"}</text>
+      <text class="zn ink" x="170" y="70">${g.tot ? g.done+"/"+g.tot+" comptés" : ""}</text>
     </g>
     <rect x="218" y="88" width="8" height="30" class="struct"/><text class="lbl sm" x="252" y="106">PORTE</text>
     <text class="lbl" x="170" y="236">SALLE HYGIÈNE — ZONE F</text>
-    <text class="lbl sm" x="62" y="130">étagères le long</text>
-    <text class="lbl sm" x="66" y="142">des deux murs</text>
   </svg>`;
 }
 function renderPlan(){
@@ -417,7 +438,7 @@ function renderPlan(){
     const tot = l.zones.reduce((s,c) => s + progress(c).tot, 0);
     const done = l.zones.reduce((s,c) => s + progress(c).done, 0);
     return `<button data-l="${l.id}" aria-pressed="${l.id===level}">${l.label} <span class="num">${done}/${tot}</span></button>`;
-  }).join("") + `<button class="sync" id="syncbtn"><i class="dot ${sync.status==="ok"?"ok":sync.status==="wait"?"wait":sync.status==="err"?"err":""}"></i>${syncLabel()}</button>`;
+  }).join("") + `<button class="sync" id="syncbtn"><i class="dot ${sync.status==="ok"?"ok":(sync.status==="wait"||sync.status==="blind")?"wait":sync.status==="err"?"err":""}"></i>${syncLabel()}</button>`;
   const L = LEVELS.find(l => l.id === level);
   $("#map").innerHTML = level === "E" ? planReserve() : level === "F" ? planF() : planEtage(L.zones, level === "RDC");
   $("#allzones").setAttribute("aria-pressed", !sector);
@@ -426,7 +447,8 @@ function renderPlan(){
 function syncLabel(){
   if (!cfg.url) return "Sheets non relié";
   if (sync.status === "wait") return "envoi…";
-  if (sync.status === "err") return "échec envoi";
+  if (sync.status === "err") return aEnvoyer ? "à renvoyer" : "échec envoi";
+  if (sync.status === "blind") return "envoyé " + sync.at + " (sans accusé)";
   if (sync.status === "ok") return "envoyé " + sync.at;
   return cat.source === "sheets" ? "produits à jour " + cat.at : "Sheets relié";
 }
@@ -593,6 +615,7 @@ $("#menu").addEventListener("click", e => {
   $("#menu").classList.remove("on");
   if (m === "cfg") return openCfg();
   if (m === "pull") return pullCatalogue(false);
+  if (m === "new") return openNew();
   const r = rows();
   if (!r.length) return toast("Rien à exporter pour l'instant");
   if (m === "csv"){
@@ -610,44 +633,89 @@ $("#menu").addEventListener("click", e => {
 });
 
 /* ---------- synchro ---------- */
-let pushTimer = null;
-function queuePush(){ clearTimeout(pushTimer); pushTimer = setTimeout(() => push(true), 2500); }
+let pushTimer = null, aEnvoyer = false, relance = null;
+function queuePush(){ aEnvoyer = true; clearTimeout(pushTimer); pushTimer = setTimeout(() => push(true), 2500); }
+
+/* Envoi en deux temps : appel normal, puis repli « aveugle » (sans lecture de la
+   réponse) pour les navigateurs mobiles qui bloquent la lecture cross-domaine. */
+async function envoyer(corps){
+  const body = JSON.stringify(corps);
+  const opts = {method:"POST", headers:{"Content-Type":"text/plain;charset=utf-8"}, body};
+  try {
+    const res = await fetch(cfg.url, {...opts, redirect:"follow"});
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || "refus du script");
+    return {mode:"ok", data};
+  } catch (err) {
+    await fetch(cfg.url, {...opts, mode:"no-cors"});   // relance sans accusé de réception
+    return {mode:"aveugle", err};
+  }
+}
+
 async function push(silent){
   if (!cfg.url) { if (!silent) openCfg(); return; }
   const r = rows();
-  if (!r.length){ if (!silent) toast("Rien à envoyer pour l'instant"); return; }
+  if (!r.length){ aEnvoyer = false; if (!silent) toast("Rien à envoyer pour l'instant"); return; }
   sync.status = "wait"; renderPlan();
   try {
-    const res = await fetch(cfg.url, {
-      method:"POST", redirect:"follow",
-      headers:{"Content-Type":"text/plain;charset=utf-8"},
-      body: JSON.stringify({token: cfg.token, date: dateEl.value, entetes: HEAD, lignes: r})
-    });
-    const data = await res.json();
-    if (!data.ok) throw new Error(data.error || "refus du script");
-    sync.status = "ok";
+    const res = await envoyer({token: cfg.token, date: dateEl.value, entetes: HEAD, lignes: r});
+    aEnvoyer = false;
     sync.at = new Date().toLocaleTimeString("fr-FR", {hour:"2-digit", minute:"2-digit"});
-    sync.msg = data.recus + " lignes · archive " + data.mois;
     if (navigator.vibrate) navigator.vibrate([80,40,120]);
     const b = $("#push");
     b.textContent = "✓ " + r.length + " envoyées"; b.style.backgroundColor = "#2e7d32";
     setTimeout(() => { b.textContent = "Envoyer"; b.style.backgroundColor = ""; }, 3000);
-    if (!silent) toast("Classeur à jour : archive " + data.mois + ", bilan et récap recalculés");
-    if (!silent && data.inconnus && data.inconnus.length) toast(data.inconnus.length + " produit(s) hors archive : " + data.inconnus.slice(0,2).join(", "));
+
+    if (res.mode === "ok"){
+      const data = res.data;
+      sync.status = "ok";
+      sync.msg = data.recus + " lignes · archive " + data.mois;
+      if (!silent) toast("Classeur à jour : archive " + data.mois + ", bilan et récap recalculés");
+      if (!silent && data.inconnus && data.inconnus.length) toast(data.inconnus.length + " produit(s) hors archive : " + data.inconnus.slice(0,2).join(", "));
+    } else {
+      sync.status = "blind";
+      sync.msg = r.length + " lignes envoyées sans accusé";
+      if (!silent) toast("Envoyé, mais sans confirmation du classeur — vérifiez l'onglet Saisie mobile");
+    }
   } catch (err) {
-    sync.status = "err"; sync.msg = "envoi impossible";
-    if (!silent) toast("Envoi impossible : " + err.message);
+    sync.status = "err"; sync.msg = "envoi en attente";
+    aEnvoyer = true;
+    if (!silent) toast("Envoi impossible : " + err.message + " — le comptage est gardé, il repartira tout seul");
   }
   render();
 }
+/* nouvelle tentative automatique tant qu'il reste quelque chose à envoyer */
+if (!relance) relance = setInterval(() => { if (aEnvoyer && cfg.url && navigator.onLine !== false) push(true); }, 30000);
+window.addEventListener("online", () => { if (aEnvoyer && cfg.url) push(true); });
+
 $("#push").addEventListener("click", () => push(false));
+
+/* Lecture par injection de balise script : passe partout, même quand le
+   navigateur mobile refuse la lecture cross-domaine. */
+function jsonp(url){
+  return new Promise(function (resolve, reject){
+    const nom = "invCb" + Date.now();
+    const s = document.createElement("script");
+    const minuteur = setTimeout(function (){ fin(); reject(new Error("délai dépassé")); }, 20000);
+    function fin(){ clearTimeout(minuteur); try { delete window[nom]; } catch(e){ window[nom] = undefined; } s.remove(); }
+    window[nom] = function (d){ fin(); resolve(d); };
+    s.onerror = function (){ fin(); reject(new Error("script injoignable")); };
+    s.src = url + "&callback=" + nom;
+    document.body.appendChild(s);
+  });
+}
 
 async function pullCatalogue(silent){
   if (!cfg.url){ if (!silent) toast("Reliez d'abord le classeur"); return; }
   try {
     const u = cfg.url + (cfg.url.indexOf("?") > -1 ? "&" : "?") + "action=getData&token=" + encodeURIComponent(cfg.token) + "&t=" + Date.now();
-    const res = await fetch(u, {redirect:"follow"});
-    const d = await res.json();
+    let d;
+    try {
+      const res = await fetch(u, {redirect:"follow"});
+      d = await res.json();
+    } catch (e1) {
+      d = await jsonp(u);                       // repli mobile
+    }
     if (!d.ok) throw new Error(d.error || "refus du script");
     const prods = d.p || d.produits;
     if (!prods || !prods.length) throw new Error("aucun produit lu");
@@ -661,6 +729,39 @@ async function pullCatalogue(silent){
     if (!silent) toast("Produits non récupérés : " + err.message);
   }
 }
+
+/* ---------- création d'une référence ---------- */
+function openNew(){
+  $("#n-svc").innerHTML = SERVICES.map(s => `<option${s===service?" selected":""}>${s}</option>`).join("");
+  $("#n-z1").innerHTML = ZONES_PLAN.map(c => `<option${c===sector?" selected":""}>${c}</option>`).join("");
+  $("#n-status").textContent = "";
+  ["#n-nom","#n-u","#n-min","#n-four"].forEach(s => $(s).value = "");
+  $("#dnew").showModal();
+}
+$("#n-close").addEventListener("click", () => $("#dnew").close());
+$("#n-save").addEventListener("click", async () => {
+  const nom = $("#n-nom").value.trim();
+  if (!nom) { $("#n-status").textContent = "Il faut au moins un intitulé."; return; }
+  if (PRODUCTS.some(p => norm(p.n) === norm(nom))) { $("#n-status").textContent = "Cette référence existe déjà dans la liste."; return; }
+  if (!cfg.url) { $("#n-status").textContent = "Le classeur n'est pas relié."; return; }
+  const produit = {
+    n: nom, s: $("#n-svc").value, z1: $("#n-z1").value,
+    u: Number($("#n-u").value.replace(/[^0-9]/g, "")) || 1,
+    min: Number($("#n-min").value.replace(/[^0-9]/g, "")) || 0,
+    fournisseur: $("#n-four").value.trim()
+  };
+  $("#n-status").textContent = "Création en cours…";
+  try {
+    const res = await envoyer({token: cfg.token, action: "ajouterProduit", produit: produit});
+    if (res.mode === "ok" && res.data && res.data.ok === false) throw new Error(res.data.error);
+    $("#dnew").close();
+    toast("« " + nom + " » ajoutée au classeur");
+    await pullCatalogue(true);
+    render();
+  } catch (err) {
+    $("#n-status").textContent = "Échec : " + err.message;
+  }
+});
 
 /* ---------- config ---------- */
 function openCfg(){ $("#c-status").textContent = cfg.url ? "Relié. " + syncLabel() : "Pas encore relié."; $("#cfg").showModal(); }
