@@ -1,0 +1,155 @@
+{
+  "name": "Inventaire emballages — annonce Slack",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "inventaire-emballage-4c81f2ae",
+        "responseMode": "lastNode",
+        "responseData": "firstEntryJson",
+        "options": {}
+      },
+      "id": "a1000000-0000-4000-8000-000000000001",
+      "name": "Inventaire envoyé",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -240,
+        0
+      ],
+      "webhookId": "4c81f2ae-1b6d-4f7a-9c21-6d0e5a3b7e10"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "/* Ce qui arrive ici est le même corps que celui envoyé au classeur Google\n   Sheets : { token, date, entetes, lignes, manuel }. Une ligne vaut\n   [Date, Secteur, Produit, Service, Unités/colis, Nb colis, Unités hors colis, Quantité totale]. */\n/* Le navigateur envoie en text/plain pour éviter un préflight CORS : selon le\n   type, n8n livre donc soit un objet, soit la chaîne brute. */\nlet d = $json.body ?? $json;\nif (typeof d === 'string') { try { d = JSON.parse(d); } catch (e) { d = {}; } }\n\nconst JETON = '553171';\n\nconst refus = (motif) => [{ json: { poster: false, motif } }];\n\nif (String(d.token || '') !== JETON) return refus('jeton invalide');\n\n/* L'application pousse toute seule 2,5 s après chaque saisie : sans ce garde-fou\n   le canal recevrait une alerte à chaque case remplie. Seul l'appui volontaire\n   sur « Envoyer » vaut « inventaire enregistré ». */\nif (d.manuel !== true) return refus('synchronisation automatique, pas une clôture');\n\nconst lignes = Array.isArray(d.lignes) ? d.lignes : [];\nif (!lignes.length) return refus('aucune ligne');\n\nconst COL = { secteur: 1, produit: 2, service: 3, parColis: 4, colis: 5, horsColis: 6, total: 7 };\nconst nb = (v) => { const n = Number(String(v ?? '').replace(/\\s/g, '').replace(',', '.')); return Number.isFinite(n) ? n : 0; };\n\nlet unites = 0, colis = 0;\nconst parService = new Map(), secteurs = new Set();\nfor (const l of lignes) {\n  unites += nb(l[COL.total]);\n  colis += nb(l[COL.colis]);\n  secteurs.add(String(l[COL.secteur] || '?'));\n  const s = String(l[COL.service] || 'Sans service');\n  const acc = parService.get(s) || { refs: 0, unites: 0 };\n  acc.refs += 1; acc.unites += nb(l[COL.total]);\n  parService.set(s, acc);\n}\n\n/* Anti-doublon : deux appuis sur « Envoyer » à une minute d'intervalle ne font\n   qu'un seul inventaire. La mémoire est celle du workflow, elle survit aux exécutions. */\nconst memoire = $getWorkflowStaticData('global');\nmemoire.derniers = memoire.derniers || {};\nconst cle = `${d.date}|${[...parService.keys()].sort().join('+')}`;\nconst maintenant = Date.now();\nconst FENETRE_MS = 15 * 60 * 1000;\nfor (const [k, t] of Object.entries(memoire.derniers)) if (maintenant - t > FENETRE_MS) delete memoire.derniers[k];\nif (memoire.derniers[cle]) return refus('déjà annoncé il y a moins de 15 minutes');\nmemoire.derniers[cle] = maintenant;\n\nconst fr = (n) => n.toLocaleString('fr-FR');\nconst jour = new Date((d.date || new Date().toISOString().slice(0, 10)) + 'T12:00:00')\n  .toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });\n\nconst detail = [...parService.entries()]\n  .sort((a, b) => b[1].unites - a[1].unites)\n  .map(([s, v]) => `• *${s}* — ${fr(v.refs)} référence${v.refs > 1 ? 's' : ''}, ${fr(v.unites)} unités`);\n\nconst texte = [\n  `:package: *Inventaire emballages enregistré* — ${jour}`,\n  '',\n  `${fr(lignes.length)} référence${lignes.length > 1 ? 's' : ''} comptée${lignes.length > 1 ? 's' : ''} · ${fr(colis)} colis · *${fr(unites)} unités* au total`,\n  `Zones relevées : ${[...secteurs].sort().join(', ')}`,\n  '',\n  ...detail,\n  '',\n  '_Le classeur Google Sheets est à jour._',\n].join('\\n');\n\nreturn [{ json: { poster: true, channel: 'prod-emballage', texte } }];\n"
+      },
+      "id": "a1000000-0000-4000-8000-000000000002",
+      "name": "Résumer le comptage",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -20,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $json.poster }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a1000000-0000-4000-8000-000000000003",
+      "name": "Clôture volontaire ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        200,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://slack.com/api/chat.postMessage",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ channel: $json.channel, text: $json.texte, username: \"Inventaire emballages\", icon_emoji: \":package:\", unfurl_links: false }) }}",
+        "options": {}
+      },
+      "id": "a1000000-0000-4000-8000-000000000004",
+      "name": "Annoncer dans #prod-emballage",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        420,
+        -100
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "Y363bYdntvl2Y5Fd",
+          "name": "Slack Savary Bot"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "id": "a1000000-0000-4000-8000-000000000005",
+      "name": "Rien à annoncer",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        420,
+        100
+      ]
+    }
+  ],
+  "connections": {
+    "Inventaire envoyé": {
+      "main": [
+        [
+          {
+            "node": "Résumer le comptage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Résumer le comptage": {
+      "main": [
+        [
+          {
+            "node": "Clôture volontaire ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clôture volontaire ?": {
+      "main": [
+        [
+          {
+            "node": "Annoncer dans #prod-emballage",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Rien à annoncer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Paris",
+    "callerPolicy": "workflowsFromSameOwner"
+  }
+}
