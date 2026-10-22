@@ -289,6 +289,7 @@ function doPost(e) {
       case "retirer": return sortie_(retirer_(d));
       case "ajouterProduit": return sortie_(ajouterProduit_(d.produit || {}));
       case "migrer": return sortie_(migrer_(d));
+      case "majPrix": return sortie_(majPrix_(d));
       default: return sortie_({ok: false, error: "action inconnue"});
     }
   } catch (err) {
@@ -422,6 +423,43 @@ function migrer_(d) {
   recalculer_();
   mettreEnForme_();
   return {ok: true, produits: prods.length, inventaires: invs.length};
+}
+
+/* Prix unitaires corrigés d'après les factures fournisseurs, et onglet
+   « Corrections HH » (ce qu'il reste à reprendre dans Hello Harel).
+   Même clé que la reprise : absente de l'app publique. */
+function majPrix_(d) {
+  if (!CLE_MIGRATION || d.cle !== CLE_MIGRATION) return {ok: false, error: "fermé"};
+  const f = ss().getSheetByName("Produits");
+  const index = {};
+  lignes_("Produits").forEach((r, i) => index[norm(r[P.n])] = {ligne: i + 2, avant: r[P.pu]});
+  const absents = [];
+  (d.prix || []).forEach(x => {
+    const t = index[norm(x.n)];
+    if (!t) { absents.push(x.n); return; }
+    const c = f.getRange(t.ligne, P.pu + 1);
+    c.setValue(x.pu);
+    c.setNote(x.source);
+    f.getRange(t.ligne, P.maj + 1).setValue(maintenant());
+    journal_("Prix (facture)", x.n, t.avant, x.pu, x.source);
+  });
+  if (d.corrections) {
+    let c = ss().getSheetByName("Corrections HH");
+    if (!c) c = ss().insertSheet("Corrections HH");
+    c.clear();
+    const rows = d.corrections;
+    c.getRange(1, 1, rows.length, rows[0].length).setValues(rows);
+    (d.titres || []).forEach(n => c.getRange(n, 1, 1, rows[0].length).setFontWeight("bold").setFontColor("#ffffff").setBackground("#0f6b57"));
+    (d.entetes || []).forEach(n => c.getRange(n, 1, 1, rows[0].length).setFontWeight("bold").setBackground("#d9ebe4").setWrap(true));
+    c.setColumnWidth(1, 330);
+    for (let k = 2; k <= rows[0].length; k++) c.setColumnWidth(k, 160);
+    c.getRange(1, 1, rows.length, rows[0].length).setVerticalAlignment("top");
+    c.getRange(2, 7, rows.length, 1).setWrap(true);
+    c.setFrozenRows(1);
+    c.setTabColor("#b3261e");
+  }
+  recalculer_();
+  return {ok: true, prix: (d.prix || []).length - absents.length, absents};
 }
 
 /* ---------- colonnes calculées, archive et bilan ---------- */
