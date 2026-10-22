@@ -17,8 +17,11 @@
    - API publique (clé X-AUTH-TOKEN) : produits, famille, stock disponible
    - session web (catalogue d'achat, /purchasing/catalog.json) : fournisseur et
      unité d'achat de chaque produit acheté. Lecture seule, rien n'est écrit.
-   Les identifiants vivent dans les propriétés du script (menu Inventaire →
-   « Installer et connecter Hello Harel… »). */
+   La synchro tourne dans n8n (workflow « Inventaire emballages — synchro Hello
+   Harel », toutes les heures) avec la clé d'API déjà enregistrée dans n8n : le
+   classeur ne détient aucun identifiant Hello Harel. n8n envoie les produits à
+   l'action « majHH » ; les fournisseurs, absents de l'API publique, viennent de
+   l'onglet caché « Fournisseurs HH » (relevé du catalogue d'achat). */
 
 const JETON = "553171";                  // le même que l'app et le webhook n8n
 const HH = "https://maison-savary.helloharel.com";
@@ -78,8 +81,6 @@ const arrondi = v => Math.round(v * 100) / 100;
    dans les propriétés du script et jamais dans le code. */
 function onOpen() {
   SpreadsheetApp.getUi().createMenu("Inventaire")
-    .addItem("Installer et connecter Hello Harel…", "installer")
-    .addItem("Synchroniser Hello Harel maintenant", "syncMenu")
     .addItem("Recalculer le bilan", "recalculerMenu")
     .addToUi();
 }
@@ -290,6 +291,7 @@ function doPost(e) {
       case "ajouterProduit": return sortie_(ajouterProduit_(d.produit || {}));
       case "migrer": return sortie_(migrer_(d));
       case "majPrix": return sortie_(majPrix_(d));
+      case "majHH": return sortie_(majHH_(d));
       default: return sortie_({ok: false, error: "action inconnue"});
     }
   } catch (err) {
@@ -460,6 +462,50 @@ function majPrix_(d) {
   }
   recalculer_();
   return {ok: true, prix: (d.prix || []).length - absents.length, absents};
+}
+
+/* Secret partagé avec le workflow n8n (absent de l'app publique). */
+const CLE_N8N = "";
+
+/* Appelée par n8n avec les produits de l'API publique. Le catalogue d'achat
+   n'étant pas dans cette API, les fournisseurs sont lus dans « Fournisseurs HH »
+   et un consommable compte comme acheté s'il y figure ou s'il a du stock. */
+function majHH_(d) {
+  if (!CLE_N8N || d.cle !== CLE_N8N) return {ok: false, error: "clé n8n invalide"};
+  const produits = Array.isArray(d.produits) ? d.produits : [];
+  if (produits.length < 100) return {ok: false, error: "liste de produits incomplète (" + produits.length + ")"};
+  let fo = ss().getSheetByName("Fournisseurs HH");
+  if (!fo) { fo = ss().insertSheet("Fournisseurs HH"); fo.hideSheet(); }
+  if (Array.isArray(d.fournisseurs) && d.fournisseurs.length) {
+    fo.clear();
+    const ent = [["ID HH", "Code HH", "Fournisseurs", "Facteur d'achat", "Ligne active"]];
+    fo.getRange(1, 2, Math.max(fo.getMaxRows(), 1), 1).setNumberFormat("@");
+    fo.getRange(1, 1, d.fournisseurs.length + 1, 5).setValues(ent.concat(d.fournisseurs.map(r => [r[0], String(r[1]), r[2], r[3], r[4] ? "O" : "N"])));
+  }
+  const achats = [];
+  const vus = {};
+  if (fo.getLastRow() > 1) fo.getRange(2, 1, fo.getLastRow() - 1, 5).getValues().forEach(r => {
+    vus[r[0]] = 1;
+    String(r[2]).split(" / ").filter(Boolean).forEach(four => achats.push({
+      links: {product: {name: "/products/products/" + r[0]}}, supplier: {displayName: four},
+      handlingUnit: {factor: Number(r[3]) || 1}, active: r[4] === "O"}));
+  });
+  /* Consommable sans ligne d'achat connue mais avec du stock : il a été reçu. */
+  produits.forEach(p => {
+    if (!vus[p.id] && p.category && FAMILLES[p.category.name] && Number(p.availableQuantity) > 0)
+      achats.push({links: {product: {name: "/products/products/" + p.id}}, supplier: {displayName: ""}, handlingUnit: {factor: 1}, active: true});
+  });
+  const f = ss().getSheetByName("Produits");
+  const rows = lignes_("Produits");
+  const res = fusionner_(produits, achats, rows, lignes_("Inutilisés"), maintenant());
+  f.getRange(1, P.h + 1, f.getMaxRows(), 1).setNumberFormat("@");
+  if (rows.length) f.getRange(2, 1, rows.length, rows[0].length).setValues(res.rows.map(r => { r[P.h] = String(r[P.h]); return r; }));
+  ajouterLignes_("Produits", res.ajouts);
+  res.ajouts.forEach(a => journal_("Ajout (Hello Harel)", a[P.n], "", "", a[P.f] ? "acheté chez " + a[P.f] : "en stock dans Hello Harel"));
+  res.lies.forEach(n => journal_("Relié à Hello Harel", n, "", "", "intitulé identique"));
+  PropertiesService.getScriptProperties().setProperty("HH_MAJ", maintenant());
+  recalculer_();
+  return {ok: true, produitsHH: produits.length, ajoutes: res.ajouts.map(a => a[P.n]), relies: res.lies, maj: res.maj};
 }
 
 /* ---------- colonnes calculées, archive et bilan ---------- */
@@ -755,7 +801,7 @@ function fusionner_(produits, achats, rows, inutilises, quand) {
     const actif = a.active !== false;
     x.actif = x.actif || actif;
     const four = String((a.supplier && a.supplier.displayName) || "").replace(/^\S+\s+-\s+/, "").trim();
-    if (four && x.four.indexOf(four) < 0) x.four[actif ? "unshift" : "push"](four);
+    if (four && x.four.indexOf(four) < 0) x.four[actif ? "unshift" : "push"](four);   // ligne sans fournisseur : produit en stock
     const fac = Number(a.handlingUnit && a.handlingUnit.factor) || 1;
     if (actif && fac > x.facteur) x.facteur = fac;
   });
