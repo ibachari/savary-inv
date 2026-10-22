@@ -44,6 +44,7 @@ input[type=date]{background:var(--card);border:1px solid var(--line);border-radi
 @media (max-width:600px){.levels{flex-wrap:wrap;overflow:visible}.levels button{font-size:12px}.levels .sync{flex-basis:100%;order:9;justify-content:center;padding:6px 12px;border-top:1px solid var(--line-2)}}
 .levels button{flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;gap:2px;border:0;background:none;padding:9px 6px;font-size:12.5px;font-weight:500;white-space:nowrap;border-bottom:2.5px solid transparent;color:var(--ink-2)}
 .levels button[aria-pressed=true]{color:var(--ink);border-bottom-color:var(--accent);font-weight:600}
+.levels button>span:first-child{max-width:100%;overflow:hidden;text-overflow:ellipsis}
 .levels .num{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--ink-2)}
 .levels .sync{flex:0 0 auto;flex-direction:row;margin-left:auto;padding:0 12px;display:flex;align-items:center;gap:6px;font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--ink-2);white-space:nowrap;border:0;background:none}
 .dot{width:7px;height:7px;border-radius:50%;background:var(--line);flex:none}
@@ -623,7 +624,7 @@ function openSvc(){
     const n = PRODUCTS.filter(p => p.s === s).length;
     return `<button data-s="${s}" aria-pressed="${service===s}">${s}<span>${n} réf.</span></button>`;
   }).join("") + `<button data-s="" aria-pressed="${service===""}">Tous les services<span>${PRODUCTS.length} réf.</span></button>`;
-  $("#dsvc").showModal();
+  if (!$("#dsvc").open) $("#dsvc").showModal();
 }
 $("#svc-list").addEventListener("click", async e => {
   const b = e.target.closest("button[data-s]"); if (!b) return;
@@ -871,6 +872,7 @@ async function pullCatalogue(silent, avecHH){
     const prods = d.p || d.produits;
     if (!prods || !prods.length) throw new Error("aucun produit lu");
     setCatalogue(prods, d.z || d.zones);
+    if ($("#dsvc").open) openSvc();          // la liste des services a pu changer
     cat.source = "sheets";
     cat.at = new Date().toLocaleTimeString("fr-FR", {hour:"2-digit", minute:"2-digit"});
     await store.set("cat:v3", JSON.stringify({p: prods, z: d.z || d.zones, at: cat.at}));
