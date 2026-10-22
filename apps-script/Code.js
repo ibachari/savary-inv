@@ -31,7 +31,7 @@ const ONGLETS = {
              "Unités/colis", "Prix unitaire (€)", "Prix du colis (€)", "Stock minimum (unités)",
              "Mouvement de stock (O/N)", "À jeter (O/N)",
              "Dernier comptage", "Quantité comptée", "Valeur stockée (€)", "Statut stock", "Trouvé hors zone",
-             "Stock HH", "Unité HH", "Catégorie HH", "ID HH", "Origine", "Mis à jour"],
+             "Stock HH", "Unité HH", "Catégorie HH", "ID HH", "Origine", "Mis à jour", "Unités app par unité HH"],
   Inventaires: ["Date inventaire", "Zone constatée", "Zone attribuée", "Intitulé", "Code HH", "Fournisseur",
                 "Service", "Unités/colis", "Colis", "Unités hors colis", "Quantité comptée",
                 "Prix unitaire (€)", "Valeur (€)", "Stock HH à l'envoi", "Compté par", "Source", "Envoyé le"],
@@ -42,7 +42,7 @@ ONGLETS["Inutilisés"] = ONGLETS.Produits.concat(["Retiré le"]);
 
 const P = {n: 0, h: 1, f: 2, contact: 3, s: 4, z1: 5, z2: 6, u: 7, pu: 8, pcol: 9, min: 10, mvt: 11, jeter: 12,
            dern: 13, qte: 14, val: 15, statut: 16, hors: 17,
-           stock: 18, unite: 19, cat: 20, id: 21, origine: 22, maj: 23};
+           stock: 18, unite: 19, cat: 20, id: 21, origine: 22, maj: 23, fhh: 24};
 const I = {date: 0, zc: 1, za: 2, n: 3, h: 4, f: 5, s: 6, u: 7, colis: 8, hors: 9, qte: 10, pu: 11, val: 12,
            stock: 13, qui: 14, source: 15, envoye: 16};
 
@@ -292,6 +292,7 @@ function doPost(e) {
       case "migrer": return sortie_(migrer_(d));
       case "majPrix": return sortie_(majPrix_(d));
       case "majHH": return sortie_(majHH_(d));
+      case "majFacteurs": return sortie_(majFacteurs_(d));
       default: return sortie_({ok: false, error: "action inconnue"});
     }
   } catch (err) {
@@ -508,6 +509,83 @@ function majHH_(d) {
   return {ok: true, produitsHH: produits.length, ajoutes: res.ajouts.map(a => a[P.n]), relies: res.lies, maj: res.maj};
 }
 
+/* « Unités app par unité HH » : combien d'unités comptées dans l'app font une
+   unité de stock Hello Harel (2000 pour des gants stockés au colis dans HH). */
+function majFacteurs_(d) {
+  if (!CLE_N8N || d.cle !== CLE_N8N) return {ok: false, error: "clé n8n invalide"};
+  const f = ss().getSheetByName("Produits");
+  f.getRange(1, P.fhh + 1).setValue(ONGLETS.Produits[P.fhh]);
+  ss().getSheetByName("Inutilisés").getRange(1, 1, 1, ONGLETS["Inutilisés"].length).setValues([ONGLETS["Inutilisés"]]);
+  const index = {};
+  lignes_("Produits").forEach((r, i) => index[norm(r[P.n])] = {ligne: i + 2, avant: r[P.fhh]});
+  const absents = [];
+  (d.facteurs || []).forEach(x => {
+    const t = index[norm(x.n)];
+    if (!t) { absents.push(x.n); return; }
+    const c = f.getRange(t.ligne, P.fhh + 1);
+    c.setValue(x.f);
+    if (x.source) c.setNote(x.source);
+    journal_("Unités par unité HH", x.n, t.avant, x.f, x.source || "");
+  });
+  recalculer_();
+  return {ok: true, absents};
+}
+
+/* Comptage de l'app face au stock Hello Harel, dans l'unité de Hello Harel.
+   Trié pour traiter d'abord les conditionnements HH à corriger, puis les plus
+   gros écarts en valeur. */
+function rapprochement_(etat) {
+  let f = ss().getSheetByName("Rapprochement HH");
+  if (!f) f = ss().insertSheet("Rapprochement HH");
+  const ent = ["Intitulé", "Code HH", "Zone", "Unités/colis (app)", "Compté (unités app)", "Date du comptage",
+               "Unité HH", "Unités app par unité HH", "Compté en unité HH", "Stock HH", "Écart (unité HH)",
+               "Écart (€)", "Statut", "À faire"];
+  const ordre = {"Conditionnement HH à corriger": 0, "Écart": 1, "OK": 2, "Pas de stock géré dans HH": 3, "Non compté": 4};
+  const rows = etat.filter(e => e.r[P.h]).map(e => {
+    const r = e.r, fac = nombre(r[P.fhh]) || 1, st = nombre(r[P.stock]);
+    const q = e.der ? e.der.q : null;
+    const conv = q == null ? null : q / fac;
+    const ecart = conv == null || st == null ? null : conv - st;
+    const euros = ecart != null && e.pu != null ? arrondi(ecart * fac * e.pu) : "";
+    let statut, faire = "";
+    if (q == null) statut = "Non compté";
+    else if (st == null) statut = "Pas de stock géré dans HH";
+    else if (fac > 1) {
+      statut = "Conditionnement HH à corriger";
+      faire = "HH : stock à l'unité, achat au colis de " + fac + " — puis inventaire à " + q + " unités";
+    } else if (Math.abs(ecart) <= Math.max(1, 0.05 * Math.max(conv, st))) statut = "OK";
+    else {
+      statut = "Écart";
+      faire = "Vérifier : compté " + q + ", HH " + st + (q && st && Math.abs(q / st - r[P.u]) / r[P.u] < 0.2 ? " — HH semble compter en colis de " + r[P.u] : "");
+    }
+    return [r[P.n], String(r[P.h]), r[P.z1], r[P.u], q == null ? "" : q, e.der ? e.der.d : "", r[P.unite], fac,
+            conv == null ? "" : Math.round(conv * 100) / 100, st == null ? "" : st, ecart == null ? "" : Math.round(ecart * 100) / 100,
+            euros, statut, faire];
+  }).sort((a, b) => (ordre[a[12]] - ordre[b[12]]) || (Math.abs(Number(b[11]) || 0) - Math.abs(Number(a[11]) || 0)));
+  f.clear();
+  f.clearConditionalFormatRules();
+  f.getRange(1, 1, 1, ent.length).setValues([ent]).setFontWeight("bold").setBackground("#12211d").setFontColor("#ffffff").setWrap(true);
+  if (rows.length) f.getRange(2, 1, rows.length, ent.length).setValues(rows);
+  const n = Math.max(rows.length, 1);
+  f.getRange(2, 2, n, 1).setNumberFormat("@");
+  f.getRange(2, 6, n, 1).setNumberFormat("dd/mm/yyyy");
+  f.getRange(2, 5, n, 1).setNumberFormat("#,##0");
+  f.getRange(2, 9, n, 3).setNumberFormat("#,##0.##");
+  f.getRange(2, 12, n, 1).setNumberFormat("#,##0.00 €");
+  const st = f.getRange(2, 13, n, 1);
+  f.setConditionalFormatRules([
+    SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo("Conditionnement HH à corriger").setBackground("#f9e2e0").setFontColor("#b3261e").setBold(true).setRanges([st]).build(),
+    SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo("Écart").setBackground("#f7ecdc").setFontColor("#b8690f").setRanges([st]).build(),
+    SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo("OK").setFontColor("#0f6b57").setRanges([st]).build(),
+    SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo("Non compté").setFontColor("#78837c").setRanges([st]).build()
+  ]);
+  f.setFrozenRows(1); f.setFrozenColumns(1);
+  f.setColumnWidth(1, 330); f.setColumnWidth(13, 190); f.setColumnWidth(14, 380);
+  f.getRange(2, 14, n, 1).setWrap(true);
+  if (f.getLastRow() > 1 && !f.getFilter()) f.getRange(1, 1, f.getLastRow(), ent.length).createFilter();
+  f.setTabColor("#b8690f");
+}
+
 /* ---------- colonnes calculées, archive et bilan ---------- */
 
 function recalculer_() {
@@ -543,6 +621,7 @@ function recalculer_() {
   }
   archive_(prods, invs);
   bilan_(etat, invs, zones);
+  rapprochement_(etat);
 }
 
 function archive_(prods, invs) {
