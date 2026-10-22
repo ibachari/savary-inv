@@ -204,6 +204,7 @@ dialog::backdrop{background:rgba(18,33,29,.6)}
   <div class="tools">
     <div class="search"><span aria-hidden="true" style="opacity:.45">⌕</span><input id="q" type="search" placeholder="Produit, fournisseur ou code…" autocomplete="off"></div>
     <button class="toggle" id="only" aria-pressed="false">Reste à compter</button>
+    <button class="toggle" id="tout" aria-pressed="false" title="Produits jamais comptés et sans stock dans Hello Harel">Sans stock</button>
   </div>
 
   <div class="list" id="list"></div>
@@ -266,11 +267,14 @@ dialog::backdrop{background:rgba(18,33,29,.6)}
   <h2>Fiche produit</h2>
   <p id="dp-nom">—</p>
   <div class="facts" id="dp-facts"></div>
+  <label for="dp-s">Service</label>
+  <input class="num" type="text" id="dp-s" list="dp-services" autocomplete="off" style="font-size:15px">
+  <datalist id="dp-services"></datalist>
   <label for="dp-u">Unités par colis</label>
   <input class="num" type="text" id="dp-u" inputmode="numeric">
   <div class="status" id="dp-status"></div>
   <div class="actions">
-    <button class="go" id="dp-save">Changer le conditionnement</button>
+    <button class="go" id="dp-save">Enregistrer</button>
     <button id="dp-unite">Unité simple (1)</button>
   </div>
   <div class="actions">
@@ -312,7 +316,8 @@ function setCatalogue(prods, zones){
     if (vus[k]) k += "#" + i;
     vus[k] = 1;
     return {n: String(p.n).trim(), s: p.s || "", z1: p.z1 || "Autres", z2: p.z2 || null, u: Number(p.u) || 1, k,
-            h: p.h || "", f: p.f || "", st: p.st == null || p.st === "" ? null : Number(p.st), un: p.un || ""};
+            h: p.h || "", f: p.f || "", st: p.st == null || p.st === "" ? null : Number(p.st), un: p.un || "",
+            vu: p.vu !== false};
   });
   if (zones && zones.length) ZONES = zones.filter(z => z && z.c && norm(z.c) !== "code");
   SEC = {};
@@ -334,6 +339,7 @@ let state = {};              // clé produit -> {c, l, z, e}
 let service = null;          // null = pas encore choisi ; "" = tous les services
 let sector = null;           // null = toutes les zones du service
 let level = "RDC", onlyTodo = false, query = "", flagKey = null;
+let toutAfficher = false;    // false : on masque les produits jamais comptés et sans stock dans Hello Harel
 let cfg = {url:"https://script.google.com/macros/s/AKfycbzIhPZnwo3rPl2dNxVK0VTRii2EiRQEtt68mEFoLvzm3RilfeI3WRfo79ZNUx-vvQhG/exec", token:"553171", auto:true};
 let sync = {status:"idle", at:null, msg:""};
 
@@ -373,14 +379,47 @@ async function load(){
   const v = await store.get(key());
   if (v) { try { state = JSON.parse(v); } catch(e){} }
   render();
+  reprendre();
 }
+
+/* Comptages partagés : ce que les autres téléphones ont déjà envoyé pour cette
+   date est repris (marqué « r »). Une saisie faite ici l'emporte toujours, et
+   seules les saisies faites ici repartent au classeur. */
+async function reprendre(){
+  if (!cfg.url) return;
+  const date = dateEl.value;
+  try {
+    const u = cfg.url + "?action=inventaire&token=" + encodeURIComponent(cfg.token) + "&date=" + date + "&t=" + Date.now();
+    let d;
+    try { d = await (await fetch(u, {redirect:"follow"})).json(); } catch (e1) { d = await jsonp(u); }
+    if (!d.ok || date !== dateEl.value) return;
+    const parNom = {};
+    PRODUCTS.forEach(p => parNom[norm(p.n)] = p);
+    let n = 0;
+    Object.keys(state).forEach(k => { if (state[k].r) delete state[k]; });
+    d.lignes.forEach(l => {
+      const p = parNom[norm(l.n)];
+      if (!p || state[p.k]) return;
+      state[p.k] = l.q === 0 ? {z: true, r: 1} : {c: l.c || undefined, l: l.l || undefined, r: 1};
+      if (l.zc && l.zc !== p.z1 && l.zc !== p.z2) state[p.k].e = l.zc;
+      n++;
+    });
+    await store.set(key(), JSON.stringify(state));
+    render();
+    if (n) toast(n + " produit(s) déjà comptés repris du classeur");
+  } catch (e) {}
+}
+setInterval(() => { if (document.visibilityState === "visible" && navigator.onLine !== false) reprendre(); }, 120000);
 
 /* ---------- calculs ---------- */
 const rec = k => state[k] || {};
 const isCounted = k => { const r = rec(k); return r.z === true || Number(r.c) > 0 || Number(r.l) > 0; };
 const totalUnits = p => { const r = rec(p.k); return (Number(r.c)||0) * (p.u||0) + (Number(r.l)||0); };
 const zoneOf = p => rec(p.k).e || p.z1;              // emplacement réellement constaté
-const inService = p => !service || p.s === service;
+/* Un produit ajouté depuis Hello Harel, jamais compté et sans stock là-bas,
+   encombre la liste : il reste caché tant qu'on ne demande pas « Sans stock ». */
+const sansStock = p => !p.vu && !(p.st > 0) && !isCounted(p.k);
+const inService = p => (!service || p.s === service) && (toutAfficher || !sansStock(p));
 const itemsOf = code => PRODUCTS.filter(p => inService(p) && (p.z1 === code || p.z2 === code));
 const scope = () => sector ? itemsOf(sector) : PRODUCTS.filter(inService);
 
@@ -501,6 +540,9 @@ function render(){
   $("#p-count").textContent = done + " / " + items.length + " comptés";
   $("#p-units").textContent = nf(items.reduce((s,p) => s + totalUnits(p), 0)) + " unités";
   $("#who-l").textContent = service || "Tous";
+  const caches = PRODUCTS.filter(p => (!service || p.s === service) && sansStock(p)).length;
+  $("#tout").textContent = (toutAfficher ? "Masquer sans stock " : "Sans stock ") + caches;
+  $("#tout").hidden = !caches;
 
   const list = visible();
   $("#list").innerHTML = list.length ? list.map(p => {
@@ -535,6 +577,7 @@ function render(){
 /* ---------- saisie ---------- */
 function set(k, patch){
   state[k] = {...rec(k), ...patch};
+  delete state[k].r;                       // modifié ici : devient une saisie de ce téléphone
   const r = state[k];
   if (!r.c && !r.l && !r.z && !r.e) delete state[k];
   save();
@@ -554,8 +597,8 @@ $("#list").addEventListener("input", e => {
   const row = e.target.closest(".row"); if (!row) return;
   const k = row.dataset.k, v = e.target.value.replace(/[^0-9]/g,"");
   e.target.value = v;
-  if (e.target.classList.contains("qty")) state[k] = {...rec(k), c: v === "" ? undefined : Number(v), z:false};
-  if (e.target.classList.contains("loose")) state[k] = {...rec(k), l: v === "" ? 0 : Number(v)};
+  if (e.target.classList.contains("qty")) state[k] = {...rec(k), c: v === "" ? undefined : Number(v), z:false, r:undefined};
+  if (e.target.classList.contains("loose")) state[k] = {...rec(k), l: v === "" ? 0 : Number(v), r:undefined};
   const p = PRODUCTS.find(x => x.k === k), r = state[k];
   row.querySelector(".total span").innerHTML = (r.c || r.l) ? `<b>${nf(totalUnits(p))}</b> unités` : "en attente de comptage";
   save();
@@ -611,6 +654,7 @@ function selectZone(g){
 $("#allzones").addEventListener("click", () => { sector = null; render(); });
 $("#autres").addEventListener("click", () => { sector = sector === "Autres" ? null : "Autres"; render(); });
 $("#q").addEventListener("input", e => { query = e.target.value; render(); });
+$("#tout").addEventListener("click", e => { toutAfficher = !toutAfficher; e.currentTarget.setAttribute("aria-pressed", toutAfficher); render(); });
 $("#only").addEventListener("click", e => { onlyTodo = !onlyTodo; e.currentTarget.setAttribute("aria-pressed", onlyTodo); render(); });
 dateEl.addEventListener("change", load);
 $("#reset").addEventListener("click", () => {
@@ -652,6 +696,8 @@ function openFiche(k){
     p.s + " · zone " + p.z1 + (p.z2 ? "/" + p.z2 : "")
   ].filter(Boolean).join("<br>");
   $("#dp-u").value = p.u;
+  $("#dp-s").value = p.s;
+  $("#dp-services").innerHTML = SERVICES.map(s => `<option value="${s}">`).join("");
   $("#dp-status").textContent = "";
   $("#dprod").showModal();
 }
@@ -665,7 +711,19 @@ function changerConditionnement(u){
   $("#dprod").close(); render(); save();
   toast(nf(avant) + " → " + nf(u) + " u./colis, enregistré pour les prochains inventaires");
 }
-$("#dp-save").addEventListener("click", () => changerConditionnement(Number($("#dp-u").value.replace(/[^0-9]/g, ""))));
+$("#dp-save").addEventListener("click", () => {
+  const p = PRODUCTS.find(x => x.k === ficheKey);
+  const sv = $("#dp-s").value.trim();
+  if (p && sv && sv !== p.s){
+    const avant = p.s;
+    p.s = sv;
+    if (!SERVICES.includes(sv)) SERVICES = [...SERVICES, sv].sort();
+    modifier({action: "service", n: p.n, s: sv});
+    toast("Service : " + avant + " → " + sv);
+  }
+  changerConditionnement(Number($("#dp-u").value.replace(/[^0-9]/g, "")));
+  render();
+});
 $("#dp-unite").addEventListener("click", () => changerConditionnement(1));
 $("#dp-close").addEventListener("click", () => $("#dprod").close());
 $("#dp-retirer").addEventListener("click", () => {
@@ -716,8 +774,8 @@ function envoyerModifs(){
 /* Les huit premières colonnes sont celles que lit le webhook Slack (n8n) :
    ne pas en changer l'ordre, ajouter à la fin. */
 const HEAD = ["Date","Secteur","Produit / Référence","Service","Unités par colis","Nombre de colis","Unités hors colis","Quantité totale","Zone attribuée","Compté par"];
-function rows(){
-  return PRODUCTS.filter(p => isCounted(p.k)).map(p => {
+function rows(seulementIci){
+  return PRODUCTS.filter(p => isCounted(p.k) && !(seulementIci && rec(p.k).r)).map(p => {
     const r = rec(p.k);
     return [dateEl.value, zoneOf(p), p.n, p.s, p.u, Number(r.c)||0, Number(r.l)||0, totalUnits(p), p.z1, service || "Tous"];
   });
@@ -787,7 +845,7 @@ async function annoncer(corps){
 
 async function push(silent){
   if (!cfg.url) { if (!silent) openCfg(); return; }
-  const r = rows();
+  const r = rows(true);
   if (!r.length){ aEnvoyer = false; if (!silent) toast("Rien à envoyer pour l'instant"); return; }
   sync.status = "wait"; renderPlan();
   try {
@@ -795,7 +853,7 @@ async function push(silent){
     const res = await envoyer(corps);
     if (res.mode === "ok" && !res.data.ok) throw new Error(res.data.error || "refus du classeur");
     aEnvoyer = false;
-    if (!silent) annoncer(corps);
+    if (!silent) annoncer(res.mode === "ok" ? {...corps, lignes: rows(), sousMin: res.data.sousMin || []} : corps);
     sync.at = new Date().toLocaleTimeString("fr-FR", {hour:"2-digit", minute:"2-digit"});
     if (navigator.vibrate) navigator.vibrate([80,40,120]);
     const b = $("#push");

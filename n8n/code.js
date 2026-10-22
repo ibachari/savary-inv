@@ -54,6 +54,15 @@ const detail = [...parService.entries()]
   .sort((a, b) => b[1].unites - a[1].unites)
   .map(([s, v]) => `• *${s}* — ${fr(v.refs)} référence${v.refs > 1 ? 's' : ''}, ${fr(v.unites)} unités`);
 
+/* Produits passés sous leur stock minimum, calculés par le classeur après
+   l'enregistrement et transmis par l'app. */
+function alerteMinimum(liste) {
+  if (!Array.isArray(liste) || !liste.length) return [];
+  return ['', `:warning: *${liste.length} produit${liste.length > 1 ? 's' : ''} sous le stock minimum*`,
+    ...liste.slice(0, 15).map(p => `• ${p.n} — ${fr(p.q)} / mini ${fr(p.min)}${p.f ? ` (${p.f})` : ''}`),
+    ...(liste.length > 15 ? [`• … et ${liste.length - 15} autre(s), voir l'onglet Bilan`] : [])];
+}
+
 const texte = [
   `:package: *Inventaire emballages enregistré* — ${jour}`,
   '',
@@ -61,6 +70,7 @@ const texte = [
   `Zones relevées : ${[...secteurs].sort().join(', ')}`,
   '',
   ...detail,
+  ...alerteMinimum(d.sousMin),
   '',
   '_Le classeur Google Sheets est à jour._',
 ].join('\n');

@@ -245,7 +245,8 @@ function catalogue_() {
   const p = lignes_("Produits").filter(r => r[P.n]).map(r => ({
     n: String(r[P.n]), h: String(r[P.h] || ""), f: String(r[P.f] || ""), s: String(r[P.s] || ""),
     z1: String(r[P.z1] || "Autres"), z2: r[P.z2] ? String(r[P.z2]) : null, u: Number(r[P.u]) || 1,
-    st: nombre(r[P.stock]), un: String(r[P.unite] || ""), min: nombre(r[P.min])
+    st: nombre(r[P.stock]), un: String(r[P.unite] || ""), min: nombre(r[P.min]),
+    vu: r[P.qte] !== "" && r[P.qte] != null
   }));
   const z = lignes_("Zones").filter(r => r[0]).map(r => ({c: String(r[0]), l: String(r[1]), n: String(r[2])}));
   return {ok: true, p, z, maj: PropertiesService.getScriptProperties().getProperty("HH_MAJ") || ""};
@@ -266,6 +267,7 @@ function doGet(e) {
   if (q.token !== JETON) return sortie_({ok: false, error: "jeton invalide"}, q.callback);
   try {
     if (q.action === "getData") return sortie_(catalogue_(), q.callback);
+    if (q.action === "inventaire") return sortie_(inventaireDuJour_(q.date), q.callback);
     return sortie_({ok: true, service: "inventaire emballages"}, q.callback);
   } catch (err) {
     return sortie_({ok: false, error: String(err.message || err)}, q.callback);
@@ -287,6 +289,7 @@ function doPost(e) {
       case "inventaire": return sortie_(enregistrerInventaire_(d));
       case "conditionnement": return sortie_(changerConditionnement_(d));
       case "zone": return sortie_(changerZone_(d));
+      case "service": return sortie_(changerService_(d));
       case "retirer": return sortie_(retirer_(d));
       case "ajouterProduit": return sortie_(ajouterProduit_(d.produit || {}));
       case "migrer": return sortie_(migrer_(d));
@@ -331,7 +334,21 @@ function enregistrerInventaire_(d) {
   const res = remplacerInventaire_(rows);
   recalculer_();
   const inconnus = lignes.filter(l => !prods[norm(l[2])]).map(l => l[2]);
-  return {ok: true, recus: lignes.length, ajoutees: res.ajoutees, majs: res.majs, inconnus};
+  const sousMin = lignes_("Produits").filter(r => r[P.statut] === "SOUS MINIMUM")
+    .map(r => ({n: String(r[P.n]), q: Number(r[P.qte]) || 0, min: Number(r[P.min]) || 0, f: String(r[P.f] || ""), z: String(r[P.z1] || "")}));
+  return {ok: true, recus: lignes.length, ajoutees: res.ajoutees, majs: res.majs, inconnus, sousMin};
+}
+
+/* Ce qui est déjà enregistré pour une date, tous téléphones confondus : l'app
+   le reprend pour qu'un deuxième téléphone ne reparte pas de zéro. */
+function inventaireDuJour_(date) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(date || ""))) return {ok: false, error: "date invalide"};
+  const lignes = lignes_("Inventaires").filter(r => r[I.date] && jourIso(r[I.date]) === date).map(r => ({
+    n: String(r[I.n]), zc: String(r[I.zc] || ""), c: Number(r[I.colis]) || 0, l: Number(r[I.hors]) || 0,
+    q: Number(r[I.qte]) || 0, qui: String(r[I.qui] || ""),
+    at: r[I.envoye] instanceof Date ? Utilities.formatDate(r[I.envoye], tz(), "dd/MM/yyyy HH:mm") : String(r[I.envoye] || "")
+  }));
+  return {ok: true, date, lignes};
 }
 
 /* Upsert par date + intitulé. */
@@ -379,6 +396,17 @@ function changerZone_(d) {
   modifierCellule_(t.ligne, P.z1, z);
   journal_("Zone", t.row[P.n], t.row[P.z1], z, d.qui || "");
   recalculer_();
+  return {ok: true};
+}
+
+function changerService_(d) {
+  const sv = String(d.s || "").trim();
+  if (!sv) return {ok: false, error: "service vide"};
+  const t = trouver_(d.n);
+  if (!t) return {ok: false, error: "produit introuvable : " + d.n};
+  if (String(t.row[P.s]) === sv) return {ok: true, inchange: true};
+  modifierCellule_(t.ligne, P.s, sv);
+  journal_("Service", t.row[P.n], t.row[P.s], sv, d.qui || "");
   return {ok: true};
 }
 
@@ -432,7 +460,8 @@ function migrer_(d) {
    « Corrections HH » (ce qu'il reste à reprendre dans Hello Harel).
    Même clé que la reprise : absente de l'app publique. */
 function majPrix_(d) {
-  if (!CLE_MIGRATION || d.cle !== CLE_MIGRATION) return {ok: false, error: "fermé"};
+  const cleOk = (CLE_MIGRATION && d.cle === CLE_MIGRATION) || (CLE_N8N && d.cle === CLE_N8N);
+  if (!cleOk) return {ok: false, error: "fermé"};
   const f = ss().getSheetByName("Produits");
   const index = {};
   lignes_("Produits").forEach((r, i) => index[norm(r[P.n])] = {ligne: i + 2, avant: r[P.pu]});
