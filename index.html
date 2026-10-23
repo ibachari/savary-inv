@@ -272,7 +272,7 @@ body.bl-on{padding-bottom:0}
 
   <div id="bl-v-inv" class="bl-v" hidden>
     <div class="bl-card"><h2 class="bl-h2">Inventaires et opérateurs</h2>
-      <p class="bl-note">Un inventaire par date. Ouvrez une ligne pour voir le bilan tel qu'il était ce jour-là, avec son opérateur.</p>
+      <p class="bl-note">Un inventaire par mois : les saisies du mois s'y rattachent. Ouvrez une ligne pour voir son bilan, arrêté au dernier jour de saisie, avec son opérateur.</p>
       <div class="bl-scroll"><table class="bl-t" id="bl-invs"></table></div></div>
   </div>
   <div id="bl-v-bilan" class="bl-v">
@@ -1130,20 +1130,34 @@ function blOperateurs(d){
   if (d === dateEl.value && operateur && PRODUCTS.some(p => isCounted(p.k))) o[operateur] = Math.max(o[operateur] || 0, PRODUCTS.filter(p => isCounted(p.k)).length);
   return Object.keys(o).sort((a, b) => o[b] - o[a]);
 }
+/* Un inventaire = un mois : les saisies du mois (comptages partiels, reprises)
+   s'y rattachent, et son bilan est l'état au dernier jour de saisie du mois. */
+const BL_MOIS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
 function blInventaires(){
-  const parDate = {};
-  PRODUCTS.forEach(p => { const h = Object.assign({}, (blHist && blHist[norm(p.n)]) || {}); if (isCounted(p.k)) h[dateEl.value] = totalUnits(p);
-    Object.keys(h).forEach(d => { const x = parDate[d] = parDate[d] || {n: 0, q: 0, z: {}}; x.n++; x.q += h[d]; x.z[p.z1] = 1; }); });
-  const L = Object.keys(parDate).sort().reverse();
-  $("#bl-invs").innerHTML = L.length ? `<tr><th>Date</th><th>Opérateur</th><th class="n">Produits</th><th class="n">Quantité</th><th>Zones</th><th></th></tr>` + L.map(d => {
-    const x = parDate[d], ops = blOperateurs(d);
-    return `<tr class="${d === blAsOf ? "sel" : ""}"><td><b>${blFr(d)}</b>${d === dateEl.value && PRODUCTS.some(p => isCounted(p.k) && !rec(p.k).r) ? ' <span class="bl-chip ok">sur ce téléphone</span>' : ""}</td><td>${ops.length ? blEsc(ops.join(", ")) : '<span class="bl-chip warn">non renseigné</span>'}</td><td class="n">${x.n}</td><td class="n">${blFmt(x.q)}</td><td>${blEsc(Object.keys(x.z).sort().join(" · "))}</td><td><button class="bl-lien" data-d="${d}">Voir le bilan</button></td></tr>`;
+  const parMois = {};
+  PRODUCTS.forEach(p => {
+    const h = Object.assign({}, (blHist && blHist[norm(p.n)]) || {});
+    if (isCounted(p.k)) h[dateEl.value] = totalUnits(p);
+    Object.keys(h).sort().forEach(d => {
+      const m = d.slice(0, 7), x = parMois[m] = parMois[m] || {jours: {}, prod: {}, z: {}};
+      x.jours[d] = (x.jours[d] || 0) + 1; x.prod[p.k] = h[d]; x.z[p.z1] = 1;
+    });
+  });
+  const L = Object.keys(parMois).sort().reverse();
+  $("#bl-invs").innerHTML = L.length ? `<tr><th>Inventaire</th><th>Saisies</th><th>Opérateur</th><th class="n">Produits</th><th class="n">Quantité</th><th>Zones</th><th></th></tr>` + L.map(m => {
+    const x = parMois[m], jours = Object.keys(x.jours).sort(), fin = jours[jours.length - 1];
+    const ops = [...new Set(jours.flatMap(d => blOperateurs(d)))];
+    const n = Object.keys(x.prod).length, q = Object.values(x.prod).reduce((s, v) => s + v, 0);
+    const saisies = jours.length === 1 ? blFr(fin) : blFr(jours[0]).slice(0, 5) + " → " + blFr(fin).slice(0, 5) + " · " + jours.length + " saisies";
+    const titre = BL_MOIS[+m.slice(5, 7) - 1] + " " + m.slice(0, 4);
+    const ici = m === dateEl.value.slice(0, 7) && PRODUCTS.some(p => isCounted(p.k) && !rec(p.k).r);
+    return `<tr class="${fin === blAsOf ? "sel" : ""}"><td><b style="text-transform:capitalize">${titre}</b>${ici ? ' <span class="bl-chip ok">en cours sur ce téléphone</span>' : ""}</td><td>${blEsc(saisies)}</td><td>${ops.length ? blEsc(ops.join(", ")) : '<span class="bl-chip warn">non renseigné</span>'}</td><td class="n">${n}</td><td class="n">${blFmt(q)}</td><td>${blEsc(Object.keys(x.z).sort().join(" · "))}</td><td><button class="bl-lien" data-d="${fin}" data-m="${m}">Voir le bilan</button></td></tr>`;
   }).join("") : `<tr><td class="bl-vide">Aucun inventaire enregistré.</td></tr>`;
 }
-function blVoir(d){
+function blVoir(d, m){
   blAsOf = d || null;
   $("#bl-banner").hidden = false;
-  $("#bl-banner").innerHTML = d ? `Bilan de l'inventaire du <b>${blFr(d)}</b> · opérateur : <b>${blEsc(blOperateurs(d).join(", ") || "non renseigné")}</b> · état du stock au soir de ce jour. <button class="bl-lien" id="bl-actuel">Revenir au bilan actuel</button>` : "";
+  $("#bl-banner").innerHTML = d ? `Bilan de l'inventaire de <b>${m ? BL_MOIS[+m.slice(5, 7) - 1] + " " + m.slice(0, 4) : blFr(d)}</b> · opérateur : <b>${blEsc([...new Set((m ? [...Object.keys(blQui), dateEl.value].filter(x => x.slice(0, 7) === m) : [d]).flatMap(x => blOperateurs(x)))].join(", ") || "non renseigné")}</b> · état du stock au ${blFr(d)}, dernier jour de saisie. <button class="bl-lien" id="bl-actuel">Revenir au bilan actuel</button>` : "";
   if (!d) $("#bl-banner").hidden = true;
   blRendre();
   blMontrer("bilan");
@@ -1288,7 +1302,7 @@ function blApresValidation(n){
 }
 
 $("#bl-open").addEventListener("click", () => $("#bl").hidden ? blOuvrir("") : blFermer());
-$("#bl-invs").addEventListener("click", e => { const b = e.target.closest("button[data-d]"); if (b) blVoir(b.dataset.d); });
+$("#bl-invs").addEventListener("click", e => { const b = e.target.closest("button[data-d]"); if (b) blVoir(b.dataset.d, b.dataset.m); });
 $("#bl-banner").addEventListener("click", e => { if (e.target.id === "bl-actuel") blVoir(null); });
 document.querySelectorAll("#bl .bl-tabs button").forEach(b => b.addEventListener("click", () => blMontrer(b.dataset.v)));
 ["#bl-q", "#bl-fz", "#bl-fs"].forEach(s => $(s).addEventListener("input", blProduits));
