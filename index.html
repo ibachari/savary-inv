@@ -210,6 +210,8 @@ body.bl-on{padding-bottom:0}
 .bl-btn[disabled]{opacity:.5;cursor:not-allowed}
 .bl-steps{margin:0;padding-left:1.2em;display:grid;gap:3px;font-size:14px}
 #bl-csv{width:100%;min-height:150px;font:12px/1.4 "IBM Plex Mono",monospace;background:var(--paper);border:1px solid var(--line);border-radius:var(--r);padding:8px}
+.bl-t button.bl-lien{border:0;background:none;color:var(--accent);font-weight:600;text-decoration:underline;text-underline-offset:3px;padding:0}
+.bl-t tr.sel td{background:var(--accent-soft)}
 .bl-banner{background:var(--accent-soft);border:1px solid var(--accent);border-radius:var(--r);padding:10px 13px;font-size:14px}
 .bl-v{display:grid;gap:16px}
 .bl-v[hidden],.bl-banner[hidden],#bl-csv[hidden]{display:none}
@@ -222,6 +224,7 @@ body.bl-on{padding-bottom:0}
   <div class="field"><label for="d">Date</label><input type="date" id="d"></div>
   <button class="who" id="bl-open" style="margin-left:auto;background:transparent;color:var(--ink)"><i style="color:var(--ink-2)">Voir</i><span id="bl-open-l">Bilan</span></button>
   <button class="who" id="who" style="margin-left:0"><i>Service</i><span id="who-l">—</span></button>
+  <button class="who" id="op-btn" style="margin-left:0;background:var(--accent);border-color:var(--accent)"><i style="color:#cfe6dd">Opérateur</i><span id="op-l">—</span></button>
 </div></div>
 
 <main class="wrap">
@@ -259,6 +262,7 @@ body.bl-on{padding-bottom:0}
 
 <section id="bl" hidden><div class="bl-in">
   <div class="bl-tabs" role="tablist">
+    <button role="tab" id="bl-t-inv" data-v="inv" aria-selected="false">Inventaires</button>
     <button role="tab" id="bl-t-bilan" data-v="bilan" aria-selected="true">Bilan</button>
     <button role="tab" id="bl-t-produits" data-v="produits" aria-selected="false">Produits</button>
     <button role="tab" id="bl-t-export" data-v="export" aria-selected="false">Export HH</button>
@@ -266,6 +270,11 @@ body.bl-on{padding-bottom:0}
   <div class="bl-banner" id="bl-banner" hidden></div>
   <div class="bl-etat" id="bl-etat" role="status">—</div>
 
+  <div id="bl-v-inv" class="bl-v" hidden>
+    <div class="bl-card"><h2 class="bl-h2">Inventaires et opérateurs</h2>
+      <p class="bl-note">Un inventaire par date. Ouvrez une ligne pour voir le bilan tel qu'il était ce jour-là, avec son opérateur.</p>
+      <div class="bl-scroll"><table class="bl-t" id="bl-invs"></table></div></div>
+  </div>
   <div id="bl-v-bilan" class="bl-v">
     <div class="bl-kpis" id="bl-kpis"></div>
     <div class="bl-card"><h2 class="bl-h2">Contrôle par zone</h2><div class="bl-scroll"><table class="bl-t" id="bl-zones"></table></div></div>
@@ -338,6 +347,15 @@ body.bl-on{padding-bottom:0}
   </div>
 </div></div>
 
+<dialog id="dop"><div class="dlg">
+  <h2>Qui fait l'inventaire ?</h2>
+  <p id="op-txt">Indiquez votre nom avant de commencer : il est enregistré avec chaque comptage de cet inventaire et apparaît dans son bilan.</p>
+  <label for="op-nom">Prénom et nom de l'opérateur</label>
+  <input type="text" id="op-nom" list="op-noms" autocomplete="name" placeholder="Prénom Nom">
+  <datalist id="op-noms"></datalist>
+  <div class="status" id="op-status"></div>
+  <div class="actions"><button class="go" id="op-ok">Commencer l'inventaire</button></div>
+</div></dialog>
 <dialog id="dsvc"><div class="dlg">
   <h2>Qui compte ?</h2>
   <p>Choisissez votre service : le plan et la liste ne montreront que vos produits. Vous pourrez toujours ouvrir une zone précise en cliquant dessus.</p>
@@ -455,6 +473,7 @@ let level = "RDC", onlyTodo = false, query = "", flagKey = null;
 let toutAfficher = false;    // false : on masque les produits jamais comptés et sans stock dans Hello Harel
 let cfg = {url:"https://script.google.com/macros/s/AKfycbzIhPZnwo3rPl2dNxVK0VTRii2EiRQEtt68mEFoLvzm3RilfeI3WRfo79ZNUx-vvQhG/exec", token:"553171", auto:true};
 let sync = {status:"idle", at:null, msg:""};
+let operateur = "";          // opérateur de l'inventaire de la date affichée
 
 const $ = s => document.querySelector(s);
 const dateEl = $("#d");
@@ -491,7 +510,9 @@ async function load(){
   state = {};
   const v = await store.get(key());
   if (v) { try { state = JSON.parse(v); } catch(e){} }
+  operateur = (await store.get("op:" + dateEl.value)) || "";
   render();
+  demanderOp();
   reprendre();
 }
 
@@ -653,6 +674,7 @@ function render(){
   $("#p-count").textContent = done + " / " + items.length + " comptés";
   $("#p-units").textContent = nf(items.reduce((s,p) => s + totalUnits(p), 0)) + " unités";
   $("#who-l").textContent = service || "Tous";
+  $("#op-l").textContent = operateur || "à renseigner";
   const caches = PRODUCTS.filter(p => (!service || p.s === service) && sansStock(p)).length;
   $("#tout").textContent = (toutAfficher ? "Masquer sans stock " : "Sans stock ") + caches;
   $("#tout").hidden = !caches;
@@ -775,6 +797,39 @@ $("#reset").addEventListener("click", () => {
   state = {}; save(); render(); toast("Comptage vidé");
 });
 
+/* ---------- opérateur ----------
+   Chaque inventaire (une date) a son opérateur, demandé au début et envoyé dans
+   la colonne « Compté par » du classeur. */
+async function openOp(){
+  let noms = [];
+  try { noms = JSON.parse(await store.get("ops") || "[]") || []; } catch(e){}
+  $("#op-noms").innerHTML = noms.map(n => `<option value="${n.replace(/"/g, "&quot;")}">`).join("");
+  $("#op-nom").value = operateur;
+  $("#op-txt").textContent = "Inventaire du " + frDate() + ". Indiquez votre nom avant de commencer : il est enregistré avec chaque comptage de cet inventaire et apparaît dans son bilan.";
+  $("#op-status").textContent = "";
+  if (!$("#dop").open) $("#dop").showModal();
+  setTimeout(() => $("#op-nom").focus(), 50);
+}
+function demanderOp(){ if (!operateur && service !== null && !$("#dsvc").open) openOp(); }
+async function validerOp(){
+  const nom = $("#op-nom").value.trim().replace(/\s+/g, " ");
+  if (nom.length < 2){ $("#op-status").textContent = "Indiquez votre nom pour commencer."; return; }
+  const change = operateur && operateur !== nom;
+  operateur = nom;
+  await store.set("op:" + dateEl.value, nom);
+  let noms = [];
+  try { noms = JSON.parse(await store.get("ops") || "[]") || []; } catch(e){}
+  await store.set("ops", JSON.stringify([nom, ...noms.filter(n => n !== nom)].slice(0, 12)));
+  $("#dop").close();
+  render();
+  if (change && Object.keys(state).length) queuePush();
+  toast("Inventaire du " + frDate() + " : " + nom);
+}
+$("#op-ok").addEventListener("click", validerOp);
+$("#op-nom").addEventListener("keydown", e => { if (e.key === "Enter"){ e.preventDefault(); validerOp(); } });
+$("#dop").addEventListener("cancel", e => { if (!operateur) e.preventDefault(); });
+$("#op-btn").addEventListener("click", openOp);
+
 /* ---------- choix du service ---------- */
 function openSvc(){
   $("#svc-list").innerHTML = SERVICES.map(s => {
@@ -789,6 +844,7 @@ $("#svc-list").addEventListener("click", async e => {
   sector = null;
   await store.set("svc", service);
   $("#dsvc").close();
+  demanderOp();
   const best = LEVELS.map(l => ({id: l.id, n: l.zones.reduce((s,c) => s + progress(c).tot, 0)}))
                      .sort((a,b) => b.n - a.n)[0];
   if (best && best.n) level = best.id;
@@ -890,7 +946,7 @@ const HEAD = ["Date","Secteur","Produit / Référence","Service","Unités par co
 function rows(seulementIci){
   return PRODUCTS.filter(p => isCounted(p.k) && !(seulementIci && rec(p.k).r)).map(p => {
     const r = rec(p.k);
-    return [dateEl.value, zoneOf(p), p.n, p.s, p.u, Number(r.c)||0, Number(r.l)||0, totalUnits(p), p.z1, service || "Tous"];
+    return [dateEl.value, zoneOf(p), p.n, p.s, p.u, Number(r.c)||0, Number(r.l)||0, totalUnits(p), p.z1, operateur || service || "Tous"];
   });
 }
 function toast(m){ const t = $("#toast"); t.textContent = m; t.classList.add("on"); setTimeout(() => t.classList.remove("on"), 2600); }
@@ -958,6 +1014,7 @@ async function annoncer(corps){
 
 async function push(silent){
   if (!cfg.url) { if (!silent) openCfg(); return; }
+  if (!operateur){ if (!silent){ openOp(); toast("Indiquez l'opérateur avant de valider"); } return; }
   const r = rows(true);
   if (!r.length){ aEnvoyer = false; if (!silent) toast("Rien à envoyer pour l'instant"); return; }
   sync.status = "wait"; renderPlan();
@@ -1012,8 +1069,8 @@ window.addEventListener("online", () => { if (aEnvoyer && cfg.url) push(true); }
 /* code HH → [libellé HH, unité de base, reconfiguré le 22/10, unité HH encore un colis, conditionnements d'achat] */
 const HHMAP = {"627233":["Bol rond kraft 750ml 150x60mm","Unité",0,0,[]],"0775":["Boîte triangle kraft","Unité",0,0,[]],"15303":["Couvercle Ramequin pulpe blanc 30CC","Unité",0,0,[]],"631852":["Ramequin pulpe blanc 30CC","Unité",0,0,[]],"COCA16":["CORNIERE 160","Unité",0,0,[]],"FABCA0320IMP":["D20 IMPRIME","Unité",0,0,[]],"FEMNT20T":["Film étirable 270x0,45","Unité",0,0,[]],"0538":["Fond Carton LX1708RKB 2 parts","Fond Carton LX1710KBT 2 parts",0,0,[]],"0536":["Fond Carton LX995CKBC1FPR 1 part","Fond Carton LX995CKBC1FPR  1 part",0,0,[]],"FABCA0356":["GALLIA A13 IMPRIME","Unité",0,0,[]],"GALLIAA12":["A12","Unité",0,0,[]],"176146":["HOUSSE ECHELLE GM77X37.5X190 LOT X25","Unité",1,0,["Lot de 25"]],"indivboitetri":["Packaging individuel triangulaire (500unités)","Carton de 500 boites",0,0,["Carton de 500 boites"]],"0743":["Papier.CUISSON 340x170 BLANC intercalaire","Papier.CUISSON 340x170 BLANC intercalaire",0,0,[]],"14477":["Poches jetable","Unité",0,0,[]],"249083":["SAC CROISSANT 103 K BRUN NUAGE X1000","Unité",0,0,[]],"SCBALLAB-U":["75 Balluchons \" Chevrons \"","75 Balluchons \" Chevrons \"",0,0,[]],"SCBPC-U":["Sachet à baguette","Unité",0,0,[]],"0776":["Tabliers blancs","Unité",0,0,[]],"PAPEASY06":["Bobine papier calage","Unité",0,0,[]],"645393":["COUV GOBELET 20/30CL PULPE BLC","Unité",0,0,[]],"GALLIAA10":["Carton A10","Unité",0,0,[]],"642273":["GOBELET CARTON BRUN 24CL DIAM 80MM H 92MM COLIS DE 1000","Unité",0,0,[]],"BP18X8":["Boîte pâtissière 18x8","Unité",0,0,[]],"D89H37":["Moule Nordia 2 pers (1400 pcs)","Unité",0,0,[]],"627906":["BOUTEIL.PET RONDE TRANSP 0,25L  x440 unités / colis","Unité",1,0,["Colis de 440"]],"636821":["Papier ingraissable brun 25x33cm","Unité",0,0,[]],"606495":["SAC FD/CAISSE SOUFFLET PEHD 12μ 750+200/200X650MM COLIS DE 500 EN LIASSE","Unité",0,0,[]],"635497":["SAC KRAFT BRUN POIGNEES PLATES 260X200X280 MM","Unité",0,0,[]],"612052":["Sac traiteur blanc36,5 x 32 x 33","Unité",0,0,[]],"0537":["Couvercle APET DS09H65 1 part","Couvercle APET DS09H65 1 part",0,0,[]],"0539":["Couvercle APET DS1710H65 2 parts","Couvercle APET DS1710H60 2 parts",0,0,[]],"BBRTNCK3":["Moule baronnet","Unité",0,0,[]],"D233H35":["Moule Nordia 12 pers (180/carton)","Unité",0,0,[]],"D170H":["Moule Nordia 6 pers (720/carton)","Unité",0,0,[]],"BO145NCK6":["Moule octo 145","Unité",0,0,[]],"BO110NCK6":["Moule octopuce 110","Unité",0,0,[]],"0500":["Moules PIE ronds GOLDEN diamètre 85 x 32 mm ht (Diamètre du haut 106 mm)","Unité",0,0,[]],"0499":["Papier sulfurisé siliconé 41gr 2 faces 60 x 40cm - Ramette de 500 feuilles molto/crokus","Unité",1,0,["Ramette de 500"]],"0440":["TPH 106 H 32 GOLDEN (réf. S00107)","Unité",0,0,[]],"0691":["TPH 80 H 34 GOLDEN (réf. S00080)","Unité",0,0,[]],"0687":["BP18X8 - Boîte pâtissière logoté 18x8","Unité",0,0,[]],"grandeboite":["BP18X8 - Boîte pâtissière logoté 29x8","Unité",0,0,[]],"252171":["GOBELET 10/12CL BRUN 100X20","Unité",0,0,[]],"252172":["GOBELET 24CL BRUN 50x20","Unité",0,0,[]],"21568 - BX0011H0450FI":["Film 2x450 (machine)","Unité",0,0,[]],"21566 - BX0011H0250FI":["Film 2x250 (machine)","Unité",0,0,[]],"0295":["Moule bois individuel cocotte 150 ML","Unité",0,0,["Colis 360 unités"]],"BP23X8":["BOITE PATISSIERE LEBHAR 23X8 (SAVARY)","Unité",0,0,[]],"41213":["Etiquette 100x150","Unité",0,0,[]],"43390":["Etiquette 70 x 80 mm","Unité",0,0,[]],"41212":["Etiquette 70x40","Unité",0,0,[]],"SD1812":["Plaque or focaccia 150gr 12x18cm","Unité",0,0,["Plaque 200 unites"]],"ROOR1F18":["ROND SIMPLE FACE 18CM OR/NOIR - PQT 100","Unité",0,0,[]],"ROOR1F22":["ROND SIMPLE FACE 22CM OR/NOIR - PQT 100","Unité",0,0,[]],"ROOR1F26":["ROND SIMPLE FACE 26CM OR/NOIR - PQT 100","Unité",0,0,[]],"0418":["Ruban adhésif DOUCETTYS","Unité",0,0,[]],"0417":["Ruban adhésif SAVARY","Unité",0,0,[]],"987330":["Blouse de travail PLP 40g/m² boutons pression blanc taille XL Paredes","Unité",0,0,[]],"013984":["Brosse à cuve fibres dures alimentaire PLP 20,5cm bleu Vikan","Unité",0,0,[]],"182915":["Cache barbe","Unité",0,0,[]],"132960":["Charlotte blanche à clip accordéon Ø 48cm Non tissé 10X100 - Ct. 1000","Unité",0,0,[]],"979605":["Combinaison de travail (Colis de 25)","Unité",0,0,[]],"289091":["DETERG DESINF CIBA BIONYM 21KG","Unité",0,0,[]],"160562":["Décapant four Ecocert Paredes Ciba Dkap bidon de 5L","Unité",0,1,[]],"255506":["Détartrant cuisine Ecocert Paredes Ciba Dkal bidon de 5L (colis de 2 bidons)","Unité",1,0,["Colis de 2 bidons"]],"010441":["Eponge inox double face Tampel (lot de 5)","Unité",1,0,["Lot de 5"]],"123009":["Eponge spirale Inox 60g - Sachet de 10","Unité",0,0,[]],"410343":["Essuyage dévidage central Paredes blanc 450 formats 18,2 x 30 cm Ecolabel  ( colis de 6)","Unité",1,0,["Colis de 6 bobines"]],"706588":["Gant à usage unique nitrile Paredes Ecofeeds bleu lavande non poudré taille L(6/7) (colis de 10 boites de 200)","Unité",1,0,["Colis de 2000"]],"706568":["Gant à usage unique nitrile Paredes Ecofeeds bleu lavande non poudré taille S(Colis de 10 boites de 200)","Unité",1,0,["Colis de 2000"]],"706598":["Gant à usage unique nitrile Paredes Ecofeeds bleu lavande non poudré taille XL (6/7) (colis de 10 boites de 200)","Unité",1,0,["Colis de 2000"]],"706589":["Gant à usage unique nitrile Paredes Ecofeeds noir non poudré taille L (8/9)","Unité",0,0,[]],"0791":["Gant nitrile Paredes Ecofeeds noir non poudré taille S (8/9)","Unité",0,0,[]],"706578":["Gant à usage unique nitrile PROP Ecofeeds bleu lavande non poudré M (colis de 10 boites de 200)","Unité",1,0,["Colis de 2000"]],"2317161":["GHA Gel hydroalcoolique DAILYK PREMIUM Flacon pompe 500ml","Unité",0,0,[]],"999065":["Kit visiteur (1 blouse, 1 charlotte, 1 masque, 1 paire de surchaussures) Hopen Taille Unique (lot de 100)","Kit visiteur (1 blouse, 1 charlotte, 1 masque, 1 paire de surchaussures) Hopen Taille Unique",0,1,["Kit visiteur (1 blouse, 1 charlotte, 1 masque, 1 paire de surchaussures) Hopen Taille Unique"]],"123144":["LAVETTE AJOURÉE Non tissée ajourée 35x50cm - Sachet de 25","Unité",0,0,[]],"939241":["Lingettes désinfectantes mains et surfaces Laboratoire Garcin Acti'septyl DSR  (Colis de 12 boites de 120)","Unité",0,0,[]],"010378":["Liquide vaisselle plonge manuelle citron Paredes Access flacon de 1L","Unité",0,1,[]],"266140":["Lotion désinfectante Paredes Medi Asept recharge de 1400ml (Colis de 4 recharges de 1400ml)","Unité",1,0,["Colis de 4"]],"015500":["Manche alimentaire PLP 145cm bleu Maine Brosserie (1)","Unité",0,0,[]],"928971":["Masque médical type II ( 1 boite de 60)","Unité",1,0,["Boîte de 60"]],"926979":["Mocassin de sécurité Bicap Cassini S3 SRC noir pointure 39 (1 paire)","Unité",0,0,[]],"011490":["Nettoyant vitres IJN pulvérisateur de 750ml (Colis de 12 pulvérisateurs)","Unité",1,0,["Colis de 12"]],"105213":["Papier toilette rouleau géant Jumbo blanc 380m 8,3 x 17,5 cm Ecolabel Paredes (colis de 6 rouleaux)","Unité",1,0,["Colis de 6 rouleaux"]],"014111":["Pastilles Chlorées (1 colis de 25kg)","Unité",0,0,[]],"022250":["RACLETTE SOL MOUSS 60CM BLEU (1)","Unité",0,0,[]],"893200":["Sac Poubelle 30L","Unité",0,0,[]],"949514":["Surchaussure anti-glisse Tiger grip avec embout aluminium/titane caoutchouc noir taille L (41/44)","Unité",0,0,[]],"949513":["Surchaussure anti-glisse Tiger grip avec embout aluminium/titane caoutchouc noir taille M (37/40)","Unité",0,0,[]],"949512":["Surchaussure anti-glisse Tiger grip avec embout aluminium/titane caoutchouc noir taille S (34/36)","Unité",0,0,[]],"015173":["Tablette linge désinfectante Paredes Neli Desitabs seau de 125x25g","Unité",1,0,["Seau de 125"]],"116457":["BOMBE A GRAISSE 600MLGRAISS VIT","Unité",0,0,[]],"D58H38":["Moule Nordia 1 pers (2520u)","Unité",0,0,[]],"\"BMRQNCK6 B0002291\"":["Moule marquis","Unité",0,0,[]],"PTR500001000PK5 B0002193":["Moule pani-tourte - H 5 cm - Ø 16cm","Unité",0,0,[]],"0735":["PTR500001000PK5 B0004447 - Moule pani-tourte - H 5 cm - Ø 16cm atelier papille","Unité",0,0,[]],"PTR500010000PK5":["Moule pani-tourte - H 5 cm - Ø 20cm","Unité",0,0,[]],"PTR500100000PK5 B0002193":["Moule pani-tourte - H 5cm - Ø 24cm","Unité",0,0,[]],"640076":["Porte gobelet","Unité",0,0,[]],"0454":["BOITE PATISSIERE LEBHAR 18X18X5 (SAVARY)","Unité",0,0,[]],"010481":["Nettoyant vaisselle machine eau dure Ecolabel Paredes Lava Rinse HW bidon de 5L (Colis de 2 bidon)","Unité",1,0,["Colis de 2 bidons"]],"512560":["DISTRIB STYLE TOILET ROLL","Unité",0,0,[]],"051058":["Nettoyant vitres Ecolabel Paredes GLASS CLEAN pulvérisateur de 750ml","Unité",0,0,[]],"BO1900-C + CO1900-C B4":["Moule alu rectangle 19 CC260x190x56,5","Unité",0,0,[]],"612001":["Cagette en carton 560 x 420 x 100","Unité",0,0,[]],"628733":["Ruban adhésif","Unité",0,0,[]],"641339":["Papier mousseline brune alimentaire (usine 16) 37,5 x 50 cm","Kilogramme",0,0,[]],"0215":["Moule tom pouce","Unité",0,0,[]],"PTR350001000SK5 STND":["Moule pani-tourte - H 3,5 cm - Ø 16cm","Unité",0,0,[]],"CPBRTS":["Papier plissé baronnet","Unité",0,0,[]],"0225":["Papier plissé petit prince","Unité",0,0,[]],"38808":["Boite + couv 15cm","Unité",0,0,[]],"118584":["Moule alu rectangle 232x108x60","Unité",0,0,[]],"249043":["Sac croissant 106K","Unité",0,0,[]],"172315":["Plaque or 15x20cm","Unité",0,0,[]],"246535":["Sac paton pehd","Unité",0,0,[]],"235385":["Sac kraft 320/215*240","Unité",0,0,[]],"227692":["Carton Chrono - A12","Unité",0,0,[]],"227911":["Intercalaire","Unité",0,0,[]],"228087":["Carton Paris personnalisé - C51","Unité",0,0,[]],"229451":["Carton Frichti - F28","Unité",0,0,[]],"230458":["Carton Doucettys N12 - G30","Unité",0,0,[]],"230494":["Carton Doucettys N1 + N2 - H40","Unité",0,0,[]],"ROORNOIR18":["Rond or 18cm","Unité",0,0,[]],"ROORNOIR22":["Rond or 22cm","Unité",0,0,[]],"ROORNOIR26":["Rond or 26cm","Unité",0,0,[]],"PART_CAKE_C":["Boîtes à part","Unité",0,0,[]],"PAP/TIGER":["Papier de calage","Unité",0,0,[]],"631854":["Couvercle blanc65 x H 10mm","Unité",0,0,[]],"631853":["Ramequin pulpe blanc 60CC (ramequin sauce usine 16)","Unité",0,0,[]],"627235":["Couvercle transparrent bol 150x60mm","Unité",0,0,[]],"11914":["Toile de suisson aereee 59,5x39,5","Unité",0,0,[]],"240690":["FILM ETIRABLE B DIST GLISSIERE 300 X0.45","Unité",0,0,[]],"15579":["Languette carrée 8cm (carton de 200 poièces)","Unité",0,0,[]],"0296":["Moule pani-tourte - H 3,5 cm - Ø 20cm","Unité",0,0,[]],"lotsachets":["Lot de sachets de pains","Lot de 30 sachets",0,0,["Lot de 30 sachets"]],"moyenneboite":["Moyenne boite Savary (50unités)","Lot de 50 boites",0,0,["Lot de 50 boites"]],"petiteboite":["Petite boite Savary (50 unités)","Lot de 50 boites",0,0,["Lot de 50 boites"]],"256035":["Désinfectant sans rinçage PROP Medi- PROP DSR pulvérisateur de 750m (colis de 6)","Unité",1,0,["Colis de 6"]],"289092":["Détergent désinfectant Paredes Expert  Ciba Bionym bidon de 5L (Colis de 4 bidons)","Unité",1,0,["Colis de 4 bidons"]],"403975":["Lavette non tissée H'Easy 80g/m² 50 x 35 cm (Colis de 6 sachets de 25)","Unité",1,0,["Colis de 150"]],"121902":["Papier Toilette","Unité",0,0,[]],"255012":["Détergent alcalin fort automoussant PROP  bidon de 27kg","Unité",0,0,[]],"10460":["Spirale inox 60g Spontex","Unité",0,0,[]],"935049":["Surchaussure (sachet de 100)","Unité",0,0,[]],"256036":["Désinfectant sans rinçage PROP Medi-PROP DSR  bidon de 5L","Unité",0,0,[]],"255538":["Nettoyant Stockmeier Rc Truck Wash bidon de 21kg","Unité",0,0,[]],"255868":["Détergent dégraissant détartrant désinfectant  Ecocert Paredes Ciba Desirease bidon de 5L","Unité",0,0,[]],"009036":["Gel WC javel désinfectant Orlav Fresh oxygen  flacon de 750ml","Unité",0,0,[]],"012970":["Brosse à ongles fibres dures alimentaire PLP  13cm bleu Vikan","Unité",0,0,[]],"012546":["Balai lave-pont fibres dures alimentaire PLP  22,5cm bleu Vikan","Unité",0,0,[]],"233558":["Détergent neutre Ecolabel Hygiène & Nature Solspro  V Fruits Exotiques dose 20ml","Unité",0,0,[]],"022274":["Raclette mousse pivotante PLP 40cm bleu Vikan","Unité",0,0,[]],"614712":["Tablier PE Paredes blanc 25 µm gaufré 75x135 cm  taille M+ (Colis de 10 sachets de 100)","Unité",0,0,[]],"124138":["SP 150L noir BD 65μ - Ct. de 100 Sacs","Unité",0,0,[]],"115520":["COMPLETIN PLAST SEAU 4K COMPLET","Unité",0,0,[]],"0353":["Gant Taille M","Unité",0,0,[]],"0355":["Gant Taille XL","Gant Taille XL",0,0,[]],"129191":["Brosse à ongles double face 8cm","Unité",0,0,[]],"124030":["Pastille de sel pour Adoucisseur 25kg","Unité",0,0,[]],"GALIAA13":["Carton A13","A13 (As2pack) 1 u",0,0,[]],"35861 PP":["Etiquette 57x32 PP","Unité",0,0,[]],"FABCAD20":["Carton D20","D20 (As2pack) 1 u",0,0,[]],"132805":["GHA Gel hydroalcoolique DAILYK PREMIUM - Bidon 5L","Unité",0,0,[]],"123864":["Dosettes 20ml détergent surodorant bactéricide 3D JEDOR - Ct de 250","Unité",0,0,[]],"232127":["PLONGY'LAV Liquide vaisselle manuel citron DAILYK START - Bidon 1L","Unité",0,0,[]],"133043":["Eponge récurante double face TOP INOX - lot de 5","Unité",0,0,[]],"132664":["Gant nitrile bleu non-poudré EN 455-2 (S à XL) - Boite de 100","Unité",0,0,[]],"232822":["MULTI'DES SR Désinfectant surfaces sans rinçage DAILYK PREMIUM -750ml","Unité",0,0,[]],"133295":["KLEAN'VITRES Nettoyant vitres DAILYK START - Spray 750ml","Unité",0,0,[]],"124048":["DETERQUAT DDM Super dégraissant désinfectant - Bidon 5L","Unité",0,0,[]],"132973":["Surchaussure visiteur bleue PE imperméable 25µ - 20X100 - Ct de 2000","Unité",0,0,[]],"936029":["charlotte à clip PLP 12g/m2 50cm","Unité",0,0,[]],"SACHTRAF":["1000 Sachets Transparents Brioche","Unité",0,0,[]],"888780":["CADRE OPERA 565 H35 INOX 365","Unité",0,0,[]],"403972":["Lavette non tissée ajourée vert grand format Paredes","Unité",0,0,[]],"246154":["Tablier jetable","Unité",0,0,[]],"606507":["SAC FD/CAISSE SOUFF.PEHD BLEU","Unité",0,0,[]],"0544":["bol papier bambou 1300 ml","bol papier bambou 1300 ml",0,0,[]],"28947":["Box de 2500 feuilles A4 80 g/m² blanc NAVIGATOR","Unité",0,0,[]],"024180":["BALAI DROIT 31 CM BLEU FIBRES MEDIUM,ALIMENTAIRE","Unité",0,0,[]],"PTR50001000SK5":["Moule pani-tourte  Fabrication artisanale - H 5 cm - Ø 20cm","Unité",0,0,[]],"390060":["Distributeur inox pour 3 boîtes de gants ou de mouchoirs Jurine","Unité",0,0,[]],"023750":["Mini brosse fibres dures alimentaire PLP 20,5cm bleu Vikan (1)","Unité",0,0,[]],"014061":["Spray Gun pour bidon de 5L Tampel","Unité",0,0,[]],"260345":["Gel hydroalcoolique Laboratoire Garcin Bactimains GHA 850 flacon de 500ml(Colis de 12 flacons de 500ml)","Unité",0,0,[]],"981540":["Housse de protection pour échelle double MB Pack GN2/1 transparente 770 x 1900 mm (Colis de 4 pochettes de 25)","Unité",0,1,[]],"939411":["Charlotte ronde PLP 12g/m² blanc Ø50cm Paredes","Unité",0,0,[]],"802005":["Sacs poubelle 30L noir 30µ lien classique Paredes (Colis de 15 rouleaux de 50)","Unité",0,0,[]],"E8772":["Moule & sachet Panettone BAS","Unité",0,0,["Carton de 100 unités"]],"E8773":["Moule & Sachet Panetonne HAUT","Unité",0,0,["Carton de 100 unités"]],"987320":["blouse plp 40g blanc L","blouse plp 40g blanc L",0,0,[]],"REJ-0102-020(sku:10410040200)":["bac de rétention avec grille - 30l - 805x405x155mm","Unité",0,0,[]],"29070":["HOUSSE JETABLE PM P/100 - 851281 (page :501)","Unité",0,0,[]],"PC800600-00":["Grille inox 800*600 / 2 arrêts sur 600 mm","Unité",0,0,[]],"PHC-8301-050(sku:10215070500)":["palette hygiene - 1200x800x157 mm - 3 semelles - ultra-hygienic","Unité",0,0,[]],"0742":["MOULES RECTANGULAIRE golden","MOULES RECTANGULAIRE golden",0,0,[]],"023680":["Grattoir a main100 mm bleu lame inox (colis de 1)","Unité",0,0,[]],"0750":["Boite Carty 75cl (par 10 boites) en précommande","Boite Carty 75cl (par 10 boites)",0,0,[]],"0751":["Boite Carty 135cl (par 10 boites) en précommande","Boite Carty 135cl (par 10 boites) en précommande",0,0,[]],"Cartons pliable":["BP18","Unité",0,0,[]],"FEMN15B":["Film étirable blanc opaque","Unité",0,0,[]],"ADPABDG50100":["Ruban adhésif bande de garantis","Unité",0,0,[]],"FEMN17N":["Film étirable noir opaque","Unité",0,0,[]],"0795":["Grignette® ERGO Scaritech - Sachet de 10","Unité",0,0,[]],"0799":["B.INT GLACE BL N2 1/2L 10X10X8","B.INT GLACE BL N2 1/2L 10X10X8",0,0,[]],"SMPR19":["MLE 190x85 H55 PAPIER GOLDEN","Unité",0,0,[]],"0804":["Mocassin de sécurité Bicap Cassini S3 SRC noir pointure 42","Unité",0,0,[]],"0805":["Mocassin de sécurité Bicap Cassini S3 SRC noir pointure 45","Unité",0,0,[]],"0806":["Mocassin de sécurité Bicap Cassini S3 SRC noir pointure 41","Unité",0,0,[]],"0807":["Nettoyant Lavage et rinçage machine Ecocert Paredes Lava 2in1 bidon de 5L ( carton de 2 )","Unité",0,0,[]],"0821":["Boîte pâtisserie fenêtre","Unité",0,0,[]],"0822":["Det&Rinse ULTRAPLUS Paredes","Unité",0,0,[]],"024425":["Brosse à jante à passage d'eau fibres souples 24cm Vikan","Unité",0,0,[]],"010106":["Nettoyant vaisselle machine eau douce Paredes Access bidon de 5L (2 bidons)","Nettoyant vaisselle machine eau douce Paredes Access bidon de 5L",0,0,[]],"010325":["Liquide de rinçage vaisselle machine toutes eaux Paredes Access bidon de 5L (2 bidons)","Liquide de rinçage vaisselle machine toutes eaux Paredes Access bidon de 5L",0,0,[]]};
 const BL_LOCS = ["Entrepôt", "Économat", "CF positive - Emballage", "CF positive - Expédition", "CF positive - Matières premières", "CF positive - Tourage", "Atelier", "CF négative - Boulangerie", "CF négative - Pâtisserie", "Congélateurs - Matières premières"];
-const BL_JOURS = 150, BL_CACHE = "bilan:jours:v1";
-let blHist = null, blCharge = null, blVue = "bilan";
+const BL_JOURS = 150, BL_CACHE = "bilan:jours:v2";
+let blHist = null, blQui = {}, blCharge = null, blVue = "bilan", blAsOf = null;
 const blFmt = n => n == null || isNaN(n) ? "—" : Number(n).toLocaleString("fr-FR", {maximumFractionDigits: 2});
 const blFr = d => d ? d.slice(8, 10) + "/" + d.slice(5, 7) + "/" + d.slice(0, 4) : "";
 const blEsc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
@@ -1035,7 +1092,7 @@ async function blComptages(){
         const u = cfg.url + "?action=inventaire&token=" + encodeURIComponent(cfg.token) + "&date=" + d + "&t=" + Date.now();
         let r;
         try { r = await (await fetch(u, {redirect: "follow"})).json(); } catch (e1) { r = await jsonp(u); }
-        if (r && r.ok) cache[d] = (r.lignes || []).map(l => [l.n, l.q]);
+        if (r && r.ok) cache[d] = (r.lignes || []).map(l => [l.n, l.q, l.qui || ""]);
       } catch (e) {}
       faits++;
       $("#bl-etat").textContent = "Lecture des comptages du classeur… " + faits + "/" + aLire.length + " jours";
@@ -1044,7 +1101,12 @@ async function blComptages(){
   Object.keys(cache).forEach(d => { if (!dates.includes(d)) delete cache[d]; });
   await store.set(BL_CACHE, JSON.stringify(cache));
   const h = {};
-  Object.keys(cache).sort().forEach(d => cache[d].forEach(([n, q]) => (h[norm(n)] = h[norm(n)] || {})[d] = q));
+  blQui = {};
+  Object.keys(cache).sort().forEach(d => cache[d].forEach(([n, q, qui]) => {
+    (h[norm(n)] = h[norm(n)] || {})[d] = q;
+    const o = blQui[d] = blQui[d] || {};
+    o[qui || "non renseigné"] = (o[qui || "non renseigné"] || 0) + 1;
+  }));
   return h;
 }
 
@@ -1052,7 +1114,7 @@ async function blComptages(){
 function blHistorique(p){
   const h = Object.assign({}, (blHist && blHist[norm(p.n)]) || {});
   if (isCounted(p.k)) h[dateEl.value] = totalUnits(p);
-  return Object.keys(h).sort().map(d => [d, h[d]]);
+  return Object.keys(h).sort().filter(d => !blAsOf || d <= blAsOf).map(d => [d, h[d]]);
 }
 function blEtat(p){
   const hist = blHistorique(p);
@@ -1063,8 +1125,31 @@ function blEtat(p){
   return {hist, der, depuis, statut: !der ? "jamais" : der.q === 0 ? "nul" : min && der.q < min ? "min" : "ok", hh: p.h ? HHMAP[p.h] || null : null};
 }
 
+function blOperateurs(d){
+  const o = Object.assign({}, blQui[d] || {});
+  if (d === dateEl.value && operateur && PRODUCTS.some(p => isCounted(p.k))) o[operateur] = Math.max(o[operateur] || 0, PRODUCTS.filter(p => isCounted(p.k)).length);
+  return Object.keys(o).sort((a, b) => o[b] - o[a]);
+}
+function blInventaires(){
+  const parDate = {};
+  PRODUCTS.forEach(p => { const h = Object.assign({}, (blHist && blHist[norm(p.n)]) || {}); if (isCounted(p.k)) h[dateEl.value] = totalUnits(p);
+    Object.keys(h).forEach(d => { const x = parDate[d] = parDate[d] || {n: 0, q: 0, z: {}}; x.n++; x.q += h[d]; x.z[p.z1] = 1; }); });
+  const L = Object.keys(parDate).sort().reverse();
+  $("#bl-invs").innerHTML = L.length ? `<tr><th>Date</th><th>Opérateur</th><th class="n">Produits</th><th class="n">Quantité</th><th>Zones</th><th></th></tr>` + L.map(d => {
+    const x = parDate[d], ops = blOperateurs(d);
+    return `<tr class="${d === blAsOf ? "sel" : ""}"><td><b>${blFr(d)}</b>${d === dateEl.value && PRODUCTS.some(p => isCounted(p.k) && !rec(p.k).r) ? ' <span class="bl-chip ok">sur ce téléphone</span>' : ""}</td><td>${ops.length ? blEsc(ops.join(", ")) : '<span class="bl-chip warn">non renseigné</span>'}</td><td class="n">${x.n}</td><td class="n">${blFmt(x.q)}</td><td>${blEsc(Object.keys(x.z).sort().join(" · "))}</td><td><button class="bl-lien" data-d="${d}">Voir le bilan</button></td></tr>`;
+  }).join("") : `<tr><td class="bl-vide">Aucun inventaire enregistré.</td></tr>`;
+}
+function blVoir(d){
+  blAsOf = d || null;
+  $("#bl-banner").hidden = false;
+  $("#bl-banner").innerHTML = d ? `Bilan de l'inventaire du <b>${blFr(d)}</b> · opérateur : <b>${blEsc(blOperateurs(d).join(", ") || "non renseigné")}</b> · état du stock au soir de ce jour. <button class="bl-lien" id="bl-actuel">Revenir au bilan actuel</button>` : "";
+  if (!d) $("#bl-banner").hidden = true;
+  blRendre();
+  blMontrer("bilan");
+}
 function blBilan(){
-  const auj = blAuj();
+  const auj = blAsOf || blAuj();
   const E = PRODUCTS.map(p => ({p, e: blEtat(p)}));
   const comptes = E.filter(x => x.e.der);
   const dernier = comptes.reduce((m, x) => x.e.der.d > m ? x.e.der.d : m, "");
@@ -1075,7 +1160,7 @@ function blBilan(){
     ["Produits référencés", blFmt(PRODUCTS.length), "", ""],
     ["Comptés au moins une fois", blFmt(comptes.length), "", ""],
     ["Jamais comptés", blFmt(PRODUCTS.length - comptes.length), "", PRODUCTS.length - comptes.length ? "warn" : ""],
-    ["Dernier inventaire", blFr(dernier) || "—", comptes.filter(x => x.e.der.d === dernier).length + " produit(s) ce jour-là", ""],
+    ["Dernier inventaire", blFr(dernier) || "—", comptes.filter(x => x.e.der.d === dernier).length + " produit(s) · " + (blOperateurs(dernier).join(", ") || "opérateur non renseigné"), ""],
     ["Quantité en stock (unités)", blFmt(comptes.reduce((s, x) => s + x.e.der.q, 0)), "", ""],
     ["Sous stock minimum", blFmt(sousMin.length), "", sousMin.length ? "bad" : ""],
     ["Inchangé depuis 1 mois +", blFmt(immo.filter(x => blJours(auj, x.e.depuis) < 90).length), "", "warn"],
@@ -1162,19 +1247,19 @@ function blJoursListe(){
 }
 function blRendre(){
   if (!blHist) return;
-  blJoursListe(); blBilan(); blProduits(); blExport();
+  blJoursListe(); blInventaires(); blBilan(); blProduits(); blExport();
 }
 function blMontrer(v){
-  blVue = ["bilan", "produits", "export"].includes(v) ? v : "bilan";
-  ["bilan", "produits", "export"].forEach(x => { $("#bl-v-" + x).hidden = x !== blVue; $("#bl-t-" + x).setAttribute("aria-selected", x === blVue); });
+  blVue = ["inv", "bilan", "produits", "export"].includes(v) ? v : "bilan";
+  ["inv", "bilan", "produits", "export"].forEach(x => { $("#bl-v-" + x).hidden = x !== blVue; $("#bl-t-" + x).setAttribute("aria-selected", x === blVue); });
 }
 async function blOuvrir(message){
   if (!$("#bl-fz").options.length) blZonesSelect();
   document.body.classList.add("bl-on");
   $("#bl").hidden = false;
   $("#bl-open-l").textContent = "Saisie";
-  $("#bl-banner").hidden = !message;
-  if (message) $("#bl-banner").textContent = message;
+  if (message){ blAsOf = null; $("#bl-banner").hidden = false; $("#bl-banner").textContent = message; }
+  else if (!blAsOf) $("#bl-banner").hidden = true;
   window.scrollTo(0, 0);
   if (!cfg.url){ $("#bl-etat").textContent = "Reliez d'abord le classeur (Exporter ▾ › Connexion Google Sheets)."; return; }
   if (!blCharge) blCharge = blComptages().then(h => { blHist = h; }).catch(e => { blCharge = null; throw e; });
@@ -1198,11 +1283,13 @@ function blFermer(){
    relit les trois derniers jours et on montre le bilan rempli. */
 function blApresValidation(n){
   blCharge = null;
-  blOuvrir("Inventaire du " + frDate() + " validé : " + n + " produit(s) envoyés au classeur. Le bilan ci-dessous en tient compte.");
+  blOuvrir("Inventaire du " + frDate() + " validé par " + (operateur || "opérateur non renseigné") + " : " + n + " produit(s) envoyés au classeur. Le bilan ci-dessous en tient compte.");
   blMontrer("bilan");
 }
 
 $("#bl-open").addEventListener("click", () => $("#bl").hidden ? blOuvrir("") : blFermer());
+$("#bl-invs").addEventListener("click", e => { const b = e.target.closest("button[data-d]"); if (b) blVoir(b.dataset.d); });
+$("#bl-banner").addEventListener("click", e => { if (e.target.id === "bl-actuel") blVoir(null); });
 document.querySelectorAll("#bl .bl-tabs button").forEach(b => b.addEventListener("click", () => blMontrer(b.dataset.v)));
 ["#bl-q", "#bl-fz", "#bl-fs"].forEach(s => $(s).addEventListener("input", blProduits));
 ["#bl-jour", "#bl-dernier", "#bl-onlyrec", "#bl-loc"].forEach(s => $(s).addEventListener("input", blExport));
