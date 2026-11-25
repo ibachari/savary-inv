@@ -121,7 +121,7 @@ const gnom = p => { const f = fo(p)[0]; return f ? (NB[f] >= 2 ? f : AUTRES) : I
 const couleur = s => { if (s === AUTRES || s === INCONNU) return "#78837c"; let h = 0; for (const c of s) h = (h * 31 + c.charCodeAt(0)) % 360; return `hsl(${h} 55% 36%)`; };
 const ordreF = s => s === AUTRES ? "~1" : s === INCONNU ? "~2" : s;
 
-let S = {date: today(), who: "", counts: {}, extra: {}, pending: {}, fx: {}, fxPending: {}, fo: {}, foPending: {}, rm: {}, rmPending: {}};
+let S = {date: today(), who: "", counts: {}, extra: {}, pending: {}, fx: {}, fxPending: {}, fo: {}, foPending: {}, rm: {}, rmPending: {}, ns: {}, nsPending: {}};
 try { const x = JSON.parse(localStorage.getItem(KEY) || "null"); if (x) { S = {...S, ...x}; S.date = today(); } } catch (e) {}
 try { const op = localStorage.getItem("op:" + S.date); if (op) S.who = op; } catch (e) {}   // même prénom que l'app consommables
 if (window.self !== window.top) document.getElementById("lien-conso").hidden = true;   // dans la page à onglets, le lien est inutile
@@ -206,7 +206,7 @@ function ligne(z, p){
     ${blocFournisseurs(p, k, c)}
     <div class="row"><label>${F.length ? "En vrac / ouvert" : "Quantité"} (${UN[p.b]})</label>
     ${champNb(k, 'data-v="1"', c.vrac, "any", "decimal", "Quantité en " + UN[p.b])}</div>
-    <div class="mini"><button data-zero="${k}">${c.zero ? "✓ Rien en stock" : "Rien en stock"}</button>${lot}<button data-fx="${p.id}">✎ Conditionnements</button><button data-fo="${p.id}">⇄ Fournisseur</button><button data-rm="${p.id}">${(S.rm[p.id] || []).length ? "⚠ À retirer dans HH (" + S.rm[p.id].length + ")" : "⚠ Conditionnement à retirer"}</button><button data-photo="${p.id}">📷 ${Photos.has("mp:" + p.id) ? "Changer la photo" : "Photo"}</button></div></div>`;
+    <div class="mini"><button data-zero="${k}">${c.zero ? "✓ Rien en stock" : "Rien en stock"}</button>${lot}<button data-fx="${p.id}">✎ Conditionnements</button><button data-fo="${p.id}">⇄ Fournisseur</button><button data-ns="${p.id}">${isNS(p) ? "↩ Remettre en stock" : "✕ Plus stocké"}</button><button data-rm="${p.id}">${(S.rm[p.id] || []).length ? "⚠ À retirer dans HH (" + S.rm[p.id].length + ")" : "⚠ Conditionnement à retirer"}</button><button data-photo="${p.id}">📷 ${Photos.has("mp:" + p.id) ? "Changer la photo" : "Photo"}</button></div></div>`;
 }
 const jjmm = d => d ? d.slice(8, 10) + "/" + d.slice(5, 7) : "—";
 /* rouge : rien saisi · orange : saisie partielle ou commande en attente · vert : tous les stocks fournisseurs validés */
@@ -217,6 +217,8 @@ function statutP(p, c){
   if (!tousFaits) return ["o", "Stock partiel"];
   return att ? ["o", "Commande en attente"] : ["v", "Validé"];
 }
+/* « plus stocké » : choisi sur place, sinon les anciennes fiches HH sont rangées là d'office */
+const isNS = p => S.ns?.[p.id] !== undefined ? S.ns[p.id] === 1 : !!p.anc;
 const PENDL = id => (typeof PEND !== "undefined" && PEND[id]) || [];
 const jours = d => Math.floor((Date.now() - Date.parse(d)) / 864e5);
 const dmy = d => d ? d.split("-").reverse().join("/") : "—";
@@ -246,8 +248,13 @@ function vueZone(){
   const Z = ZONES.find(x => x.c === zone), [a, b] = avancement(zone), tous = membres(zone);
   const mots = q.trim().toLowerCase(), hay = p => (p.n + " " + p.c + " " + fo(p).join(" ")).toLowerCase();
   let L = tous.filter(p => (!fourn || gnom(p) === fourn) && (!mots || hay(p).includes(mots)));
-  if (!mots){ if (filtre === "todo") L = L.filter(p => !compte(S.counts[ck(zone, p.id)])); else if (filtre === "faits") L = L.filter(p => compte(S.counts[ck(zone, p.id)])); }
-  L = trier(L);
+  let nsL = [];
+  if (!mots){ const fait = p => compte(S.counts[ck(zone, p.id)]);
+    if (filtre === "tous"){ nsL = L.filter(isNS); L = L.filter(p => !isNS(p)); }
+    else if (filtre === "todo") L = L.filter(p => !isNS(p) && !fait(p));
+    else if (filtre === "faits") L = L.filter(fait);
+    else if (filtre === "ns") L = L.filter(isNS); }
+  L = trier(L); nsL = trier(nsL);
   let ajoutL = [];
   if (ajout){ const dans = new Set(tous.map(p => p.id));
     ajoutL = trier(DATA.filter(p => !dans.has(p.id) && (!mots || hay(p).includes(mots)) && (!fourn || gnom(p) === fourn) && (!origine || p.z.includes(origine)))).slice(0, 40); }
@@ -256,19 +263,20 @@ function vueZone(){
   if (tri === "fo" && !mots){ const g = {}; L.forEach(p => (g[gnom(p)] = g[gnom(p)] || []).push(p));
     corps = Object.keys(g).map(f => `<div class="grp" style="border-top-color:${couleur(f)};color:${couleur(f)}"><span>${esc(f)}</span><small>${g[f].length} produit(s)</small></div>${g[f].map(p => ligne(zone, p)).join("")}`).join(""); }
   else corps = L.map(p => ligne(zone, p)).join("");
+  if (nsL.length) corps += `<div class="grp" style="border-top-color:#78837c;color:#78837c"><span>Plus stockés / anciennes fiches</span><small>${nsL.length} produit(s)</small></div>${nsL.map(p => ligne(zone, p)).join("")}`;
   $("#main").innerHTML = `<div class="bar"><button class="btn ghost" id="back">‹ Zones</button><h1 style="margin:0;font-size:22px">${esc(Z.n)}</h1><span class="p-c">${a} / ${b}</span></div>
   <div class="prog"><i style="width:${b ? Math.round(100 * a / b) : 0}%"></i></div>
   <div class="bar"><input type="search" id="q" placeholder="Produit, code ou fournisseur" value="${esc(q)}" autocomplete="off"></div>
   <div class="leg"><span class="stb r" style="margin:0">Rien saisi</span><span class="stb o" style="margin:0">En attente / partiel</span><span class="stb v" style="margin:0">Validé</span></div>
   <div class="bar sels">
-    <label>Afficher <select id="sel-fil">${opts([["todo", "À compter"], ["tous", "Tous"], ["faits", "Déjà comptés"]], filtre)}</select></label>
+    <label>Afficher <select id="sel-fil">${opts([["tous", "Tous (plus stockés en bas)"], ["todo", "À compter"], ["faits", "Déjà comptés"], ["ns", "Plus stockés / anciennes fiches"], ["tout", "Tout, mélangé"]], filtre)}</select></label>
     <label>Fournisseur <select id="sel-fo"><option value="">Tous (${fz.length})</option>${opts(fz.map(([f, n]) => [f, `${f} · ${n}`]), fourn)}</select></label>
     <label>Trier <select id="sel-tri">${opts(TRIS, tri)}</select></label>
   </div>
   <div class="bar"><button class="btn ghost" id="ajout">${ajout ? "Fermer l'ajout" : "+ Produit d'une autre zone"}</button>
     ${ajout ? `<label class="sels">Venant de <select id="sel-or"><option value="">Toutes les zones</option>${opts(ZONES.filter(z => z.c !== zone).map(z => [z.c, z.n]), origine)}</select></label>` : ""}</div>
   ${ajoutL.length ? `<div class="card"><b>Ajouter à cette zone</b>${ajoutL.map(p => `<div class="row"><label>${esc(p.n)}<em>${esc(p.c)} · ${esc(fo(p).join(", "))} · zone habituelle : ${p.z.join("/")}</em></label><button class="btn" data-add="${p.id}">Ajouter</button></div>`).join("")}</div>` : ""}
-  ${corps || `<p class="sub">${b ? "Rien à afficher avec ce filtre." : "Aucun produit pour l'instant : utilisez « + Produit d'une autre zone »."}</p>`}
+  ${corps || `<p class="sub">${b || nsL.length ? "Rien à afficher avec ce filtre." : "Aucun produit pour l'instant : utilisez « + Produit d'une autre zone »."}</p>`}
   <dialog id="dlg"></dialog>`;
   const qi = $("#q"); if (document.activeElement?.id === "q") qi.focus();
 }
@@ -348,6 +356,7 @@ document.addEventListener("click", e => {
   else if (b.dataset.st){ const i = b.parentElement.querySelector("input"); const pas = i.dataset.v || i.dataset.s ? 0.5 : 1; i.value = Math.max(0, Math.round(((Number(i.value) || 0) + pas * Number(b.dataset.st)) * 1000) / 1000) || ""; i.dispatchEvent(new Event("input", {bubbles: true})); }
   else if (b.dataset.fx){ ouvrirFx(Number(b.dataset.fx)); }
   else if (b.dataset.allf){ const id = Number(b.dataset.allf); tousF.has(id) ? tousF.delete(id) : tousF.add(id); rendre(); }
+  else if (b.dataset.ns){ const id = Number(b.dataset.ns); S.ns[id] = isNS(PID[id]) ? 0 : 1; S.nsPending[id] = 1; save(); envoyerNs(); toast(S.ns[id] ? "Rangé dans « Plus stockés »" : "Remis dans la liste"); rendre(); }
   else if (b.dataset.rm){ ouvrirRm(Number(b.dataset.rm)); }
   else if (b.dataset.fo){ ouvrirFo(Number(b.dataset.fo)); }
   else if (b.dataset.photo){ const p = PID[b.dataset.photo]; Photos.choisir("mp:" + p.id, p.n, S.who); }
@@ -455,6 +464,13 @@ async function envoyerRm(){
       delete S.rmPending[id]; save(); } catch (e) { return dot("err", "hors ligne — conservé sur ce téléphone"); }
   }
 }
+async function envoyerNs(){
+  if (!SYNC.url) return;
+  for (const id of Object.keys(S.nsPending)){
+    try { await appel("ecrire", {cle: "NS|" + id, date: "NS", zone: "NS", produit_id: Number(id), produit: PID[id]?.n, code: PID[id]?.c, formats: JSON.stringify({ns: S.ns[id] ?? 0}), vrac: 0, total: 0, unite: "", lot: "", dlc: "", compte_par: S.who, maj: new Date().toISOString()});
+      delete S.nsPending[id]; save(); } catch (e) { return dot("err", "hors ligne — conservé sur ce téléphone"); }
+  }
+}
 async function envoyerFo(){
   if (!SYNC.url) return;
   for (const id of Object.keys(S.foPending)){
@@ -465,7 +481,7 @@ async function envoyerFo(){
 function envoyer(k){ if (!SYNC.url) return dot("", "local"); S.pending[k] = 1; save(); dot("wait", "à envoyer…"); clearTimeout(envoyer.t); envoyer.t = setTimeout(vider, 2500); }
 async function vider(){
   if (!SYNC.url || navigator.onLine === false) return;
-  await envoyerFx(); await envoyerFo(); await envoyerRm();
+  await envoyerFx(); await envoyerFo(); await envoyerRm(); await envoyerNs();
   for (const k of Object.keys(S.pending)){
     const x = cle(k), c = S.counts[k] || {f: {}, vrac: 0, zero: false};
     try {
@@ -481,6 +497,7 @@ async function pull(){
   try {
     const r = await appel("lire", {date: S.date}); let n = 0;
     for (const row of r.rows || []){
+      if (row.cle.startsWith("NS|")){ const id = Number(row.cle.slice(3)); if (!S.nsPending[id] && PID[id]){ try { S.ns[id] = JSON.parse(row.formats || "{}").ns === 1 ? 1 : 0; n++; } catch (e) {} } continue; }
       if (row.cle.startsWith("RM|")){ const id = Number(row.cle.slice(3)); if (!S.rmPending[id] && PID[id]){ try { const v = JSON.parse(row.formats || "{}").rm || []; if (v.length) S.rm[id] = v; else delete S.rm[id]; n++; } catch (e) {} } continue; }
       if (row.cle.startsWith("FO|")){ const id = Number(row.cle.slice(3)); if (!S.foPending[id] && PID[id]){ try { const v = JSON.parse(row.formats || "{}").fo; if (v) S.fo[id] = v; else delete S.fo[id]; n++; } catch (e) {} } continue; }
       if (row.cle.startsWith("FX|")){ const id = Number(row.cle.slice(3)); if (!S.fxPending[id] && PID[id]){ try { S.fx[id] = JSON.parse(row.formats || "[]"); n++; } catch (e) {} } continue; }
