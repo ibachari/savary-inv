@@ -22,6 +22,7 @@ button{font:inherit;color:inherit;cursor:pointer}input,select{font:inherit;color
 .mark img{height:15px;width:auto;display:block}
 .mark span{font-family:"IBM Plex Mono",monospace;font-size:9.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-2);font-weight:600}
 input[type=date]{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:7px 9px;font-family:"IBM Plex Mono",monospace;font-size:14px;min-height:38px}
+.valtop{background:var(--accent);color:#fff;border:1px solid var(--accent);border-radius:99px;padding:6px 13px;min-height:38px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap}.valtop:disabled{opacity:.6}
 .who{margin-left:auto;background:var(--ink);color:#fff;border:1px solid var(--ink);border-radius:99px;padding:6px 13px;min-height:38px;font-size:13px;font-weight:500}
 .tabs{display:flex;max-width:860px;margin:0 auto;padding:0 var(--pad)}
 .tabs a,.tabs button{flex:1;text-align:center;padding:9px 6px;font-size:13px;font-weight:600;text-decoration:none;color:var(--ink-2);border:0;background:none;border-bottom:2.5px solid transparent}
@@ -91,6 +92,7 @@ dialog input[type=text],dialog input[type=number]{min-height:42px;border:1px sol
     <div class="mark"><img src="brand/logo-noir.png" alt="Maison Savary"><span>Matières premières</span></div>
     <input type="date" id="date" aria-label="Date de l'inventaire">
     <button class="who" id="who">Qui compte ?</button>
+    <button class="valtop" id="hhall">Valider l'inventaire</button>
   </div>
   <div class="tabs"><button class="on" id="t-inv">Inventaire</button><button id="t-bil">Bilan &amp; export</button><a href="consommables.html" id="lien-conso">Consommables ›</a></div>
   <div class="sync"><span class="dot" id="dot"></span><span id="sync-t">local</span></div>
@@ -329,8 +331,8 @@ function ouvrirFx(id){
 /* Comptages remplis d'une zone → relais → brouillon d'inventaire HH (jamais validé). Un produit compté dans plusieurs zones est envoyé avec la somme. */
 function payloadZone(z){
   const produits = [], avert = [];
-  for (const p of membres(z)){
-    if (!compte(S.counts[ck(z, p.id)])) continue;
+  for (const p of (z ? membres(z) : DATA)){
+    if (z ? !compte(S.counts[ck(z, p.id)]) : !ZONES.some(zz => compte(S.counts[ck(zz.c, p.id)]))) continue;
     const parPid = new Map(), defaut = fo(p)[0] || "";
     const ajouter = (pid, f, q) => { const m = parPid.get(pid) || parPid.set(pid, new Map()).get(pid); m.set(f, (m.get(f) || 0) + q); };
     for (const zz of ZONES){ const c = S.counts[ck(zz.c, p.id)]; if (!c || !compte(c)) continue;
@@ -343,28 +345,30 @@ function payloadZone(z){
       if (reste > 1e-9 || !aff) ajouter(p.id, defaut, c.zero ? 0 : reste);
     }
     for (const [pid, m] of parPid) produits.push({pid, nom: PID[pid]?.hn || PID[pid]?.n || p.n, parts: [...m].map(([f, q]) => ({f, q: Math.round(q * 1000) / 1000}))});
-    const autres = p.z.filter(x => x !== z && !compte(S.counts[ck(x, p.id)]));
+    const autres = z ? p.z.filter(x => x !== z && !compte(S.counts[ck(x, p.id)])) : [];
     if (autres.length) avert.push(p.n + " (aussi en " + autres.join("/") + ", pas encore compté)");
   }
   return {produits, avert};
 }
-async function validerZone(){
-  const {produits, avert} = payloadZone(zone), Z = ZONES.find(x => x.c === zone);
-  if (!produits.length) return toast("Rien de saisi dans cette zone");
+async function validerZone(tout){
+  const code = tout ? "TOUS" : zone, Z = ZONES.find(x => x.c === zone);
+  const {produits, avert} = payloadZone(tout ? null : zone), nom = tout ? "tout l'inventaire (toutes les zones)" : "« " + (Z?.n || zone) + " »";
+  if (!produits.length) return toast("Rien de saisi" + (tout ? "" : " dans cette zone"));
   if (!S.who) return toast("Indiquez d'abord qui fait l'inventaire");
-  if (!confirm(`Envoyer ${produits.length} produit(s) remplis de « ${Z.n} » dans Hello Harel, en brouillon (rien n'est validé) ?` + (avert.length ? `\n\nAttention, comptés dans une seule zone pour l'instant :\n- ${avert.slice(0, 8).join("\n- ")}` : ""))) return;
-  const btn = $("#hhval"); if (btn){ btn.disabled = true; btn.textContent = "Envoi à Hello Harel…"; }
-  const cle = S.date + "|" + zone; let r;
-  try { r = await (await fetch(HHW.url, {method: "POST", headers: {"Content-Type": "text/plain"}, body: JSON.stringify({token: HHW.token, date: S.date, zone, who: S.who, produits, precedent: S.inv[cle] || null})})).json(); }
+  if (!confirm(`Envoyer ${produits.length} produit(s) remplis de ${nom} dans Hello Harel, en brouillon (rien n'est validé) ?` + (avert.length ? `\n\nAttention, comptés dans une seule zone pour l'instant :\n- ${avert.slice(0, 8).join("\n- ")}` : ""))) return;
+  const btns = [$("#hhval"), $("#hhall")].filter(Boolean), txt = btns.map(b => b.textContent); btns.forEach(b => { b.disabled = true; b.textContent = "Envoi à Hello Harel…"; });
+  const cle = S.date + "|" + code; let r;
+  try { r = await (await fetch(HHW.url, {method: "POST", headers: {"Content-Type": "text/plain"}, body: JSON.stringify({token: HHW.token, date: S.date, zone: code, who: S.who, produits, precedent: S.inv[cle] || null})})).json(); }
   catch (e) { r = {ok: false, erreur: "pas de réseau"}; }
-  if (btn){ btn.disabled = false; btn.textContent = "Valider cette zone dans Hello Harel (brouillon)"; }
-  const dlg = $("#dlg");
-  if (!r.ok){ dlg.innerHTML = `<h2 style="margin:0 0 6px">Envoi refusé</h2><p class="sub">${esc(r.erreur || "erreur")}. Rien n'a été validé dans Hello Harel.</p><div class="bar"><button class="btn" id="hhok">Fermer</button></div>`; dlg.showModal(); dlg.onclick = e => { if (e.target.id === "hhok") dlg.close(); }; return; }
+  btns.forEach((b, i) => { b.disabled = false; b.textContent = txt[i]; });
+  let dlg = document.getElementById("dlg-hh"); if (!dlg){ dlg = document.createElement("dialog"); dlg.id = "dlg-hh"; document.body.appendChild(dlg); }
+  dlg.onclick = e => { if (e.target.id === "hhok") dlg.close(); };
+  if (!r.ok){ dlg.innerHTML = `<h2 style="margin:0 0 6px">Envoi refusé</h2><p class="sub">${esc(r.erreur || "erreur")}. Rien n'a été validé dans Hello Harel.</p><div class="bar"><button class="btn" id="hhok">Fermer</button></div>`; dlg.showModal(); return; }
   S.inv[cle] = r.inventaire; save();
   dlg.innerHTML = `<h2 style="margin:0 0 6px">Brouillon créé dans Hello Harel</h2><p class="sub">Inventaire n° ${r.inventaire} : ${r.produits} produit(s), ${r.lignesModifiees} ligne(s) modifiée(s). Il reste à le valider dans Hello Harel.</p>
     ${(r.ignores || []).length ? `<div class="card"><b>Non envoyés (${r.ignores.length})</b>${r.ignores.map(x => `<div class="row"><label>${esc(PID[x.pid]?.n || x.pid)}<em>${esc(x.f || "")} ${esc(x.motif)}</em></label></div>`).join("")}</div>` : ""}
     <div class="bar"><a class="btn" href="${esc(r.url)}" target="_blank" rel="noopener">Ouvrir dans Hello Harel</a><button class="btn ghost" id="hhok">Fermer</button></div>`;
-  dlg.showModal(); dlg.onclick = e => { if (e.target.id === "hhok") dlg.close(); };
+  dlg.showModal();
 }
 function ouvrirRm(id){
   const p = PID[id], dlg = $("#dlg"); let L = (S.rm[id] || []).map(x => ({...x}));
@@ -439,7 +443,8 @@ document.addEventListener("click", e => {
   else if (b.dataset.fx){ ouvrirFx(Number(b.dataset.fx)); }
   else if (b.dataset.allf){ const id = Number(b.dataset.allf); tousF.has(id) ? tousF.delete(id) : tousF.add(id); rendre(); }
   else if (b.dataset.ns){ const id = Number(b.dataset.ns); S.ns[id] = isNS(PID[id]) ? 0 : 1; S.nsPending[id] = 1; save(); envoyerNs(); toast(S.ns[id] ? "Rangé dans « Plus stockés »" : "Remis dans la liste"); rendre(); }
-  else if (b.id === "hhval"){ validerZone(); }
+  else if (b.id === "hhval"){ validerZone(false); }
+  else if (b.id === "hhall"){ validerZone(true); }
   else if (b.dataset.addf){ ouvrirXf(Number(b.dataset.addf)); }
   else if (b.dataset.rm){ ouvrirRm(Number(b.dataset.rm)); }
   else if (b.dataset.fo){ ouvrirFo(Number(b.dataset.fo)); }
