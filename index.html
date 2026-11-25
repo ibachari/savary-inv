@@ -28,14 +28,14 @@ iframe[hidden]{display:none}
   <button role="tab" id="b-conso" aria-selected="true"><img src="brand/logo-noir.png" alt="Savary"><b>Consommables</b></button>
   <button role="tab" id="b-mp" aria-selected="false"><small>Inventaire</small><b>Matières premières</b></button>
 </nav>
-<iframe id="f-conso" title="Inventaire des consommables" src="consommables.html"></iframe>
+<iframe id="f-conso" title="Inventaire des consommables" hidden></iframe>
 <iframe id="f-mp" title="Inventaire des matières premières" hidden></iframe>
 <script>
 const T = {conso: {b: document.getElementById("b-conso"), f: document.getElementById("f-conso"), src: "consommables.html"},
            mp:    {b: document.getElementById("b-mp"),    f: document.getElementById("f-mp"),    src: "matieres-premieres.html"}};
 function montrer(k){
   for (const x in T){ const on = x === k; T[x].b.setAttribute("aria-selected", on); T[x].f.hidden = !on;
-    if (on && !T[x].f.getAttribute("src")) T[x].f.setAttribute("src", T[x].src); }
+    if (on && !T[x].f.getAttribute("src")) T[x].f.setAttribute("src", T[x].src + "?v=" + Date.now()); }   // v=… : toujours la dernière version, jamais celle du cache
   try { localStorage.setItem("onglet", k); } catch (e) {}
   history.replaceState(null, "", "#" + k);
 }
