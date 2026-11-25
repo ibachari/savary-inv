@@ -246,7 +246,7 @@ function trier(L){ const c = {nom: (a, b) => a.n.localeCompare(b.n, "fr"), code:
   fo: (a, b) => ordreF(gnom(a)).localeCompare(ordreF(gnom(b)), "fr") || a.n.localeCompare(b.n, "fr")}; return L.slice().sort(c[tri]); }
 function vueZone(){
   const Z = ZONES.find(x => x.c === zone), [a, b] = avancement(zone), tous = membres(zone);
-  const mots = q.trim().toLowerCase(), hay = p => (p.n + " " + p.c + " " + fo(p).join(" ")).toLowerCase();
+  const sans = t => String(t).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase(), mots = sans(q.trim()), hay = p => sans(p.n + " " + p.c + " " + fo(p).join(" "));
   let L = tous.filter(p => (!fourn || gnom(p) === fourn) && (!mots || hay(p).includes(mots)));
   let nsL = [];
   if (!mots){ const fait = p => compte(S.counts[ck(zone, p.id)]);
@@ -264,6 +264,7 @@ function vueZone(){
     corps = Object.keys(g).map(f => `<div class="grp" style="border-top-color:${couleur(f)};color:${couleur(f)}"><span>${esc(f)}</span><small>${g[f].length} produit(s)</small></div>${g[f].map(p => ligne(zone, p)).join("")}`).join(""); }
   else corps = L.map(p => ligne(zone, p)).join("");
   if (nsL.length) corps += `<div class="grp" style="border-top-color:#78837c;color:#78837c"><span>Plus stockés / anciennes fiches</span><small>${nsL.length} produit(s)</small></div>${nsL.map(p => ligne(zone, p)).join("")}`;
+  const avait = document.activeElement?.id === "q", pos = avait ? document.activeElement.selectionStart : 0;   // le focus doit survivre au redessin
   $("#main").innerHTML = `<div class="bar"><button class="btn ghost" id="back">‹ Zones</button><h1 style="margin:0;font-size:22px">${esc(Z.n)}</h1><span class="p-c">${a} / ${b}</span></div>
   <div class="prog"><i style="width:${b ? Math.round(100 * a / b) : 0}%"></i></div>
   <div class="bar"><input type="search" id="q" placeholder="Produit, code ou fournisseur" value="${esc(q)}" autocomplete="off"></div>
@@ -278,7 +279,7 @@ function vueZone(){
   ${ajoutL.length ? `<div class="card"><b>Ajouter à cette zone</b>${ajoutL.map(p => `<div class="row"><label>${esc(p.n)}<em>${esc(p.c)} · ${esc(fo(p).join(", "))} · zone habituelle : ${p.z.join("/")}</em></label><button class="btn" data-add="${p.id}">Ajouter</button></div>`).join("")}</div>` : ""}
   ${corps || `<p class="sub">${b || nsL.length ? "Rien à afficher avec ce filtre." : "Aucun produit pour l'instant : utilisez « + Produit d'une autre zone »."}</p>`}
   <dialog id="dlg"></dialog>`;
-  const qi = $("#q"); if (document.activeElement?.id === "q") qi.focus();
+  const qi = $("#q"); if (avait && qi){ qi.focus(); try { qi.setSelectionRange(pos, pos); } catch (e) {} }
 }
 function ouvrirFx(id){
   const p = PID[id], dlg = $("#dlg"); let L = formats(p).map(f => ({...f, o: f.q}));
