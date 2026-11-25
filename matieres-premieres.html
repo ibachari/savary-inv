@@ -432,8 +432,9 @@ function bilan(){
   ZONES.forEach(z => nz[z.c] = avancement(z.c));
   $("#main").innerHTML = `<h1>Bilan du ${S.date.split("-").reverse().join("/")}</h1>
   <div class="card"><table><tr><th>Zone</th><th class="n">Comptés</th><th class="n">Prévus</th></tr>${ZONES.map(z => `<tr><td>${esc(z.n)}</td><td class="n">${nz[z.c][0]}</td><td class="n">${nz[z.c][1]}</td></tr>`).join("")}</table></div>
+  ${Object.keys(S.xf).length ? `<div class="card"><b>Fournisseurs ajoutés, à reporter dans le catalogue d'achat HH (${Object.values(S.xf).reduce((n, l) => n + l.length, 0)})</b>${Object.entries(S.xf).map(([id, l]) => l.map(n => `<div class="row"><label>${esc(PID[id]?.n)}<em>${esc(n)}</em></label></div>`).join("")).join("")}</div>` : ""}
   ${Object.keys(S.rm).length ? `<div class="card"><b>À retirer de la fiche produit dans Hello Harel (${Object.values(S.rm).reduce((n, l) => n + l.length, 0)})</b>${Object.entries(S.rm).map(([id, l]) => l.map(x => `<div class="row"><label>${esc(PID[id]?.n)}<em>${esc(x.n)} · ${esc(x.m)}${x.t ? " · " + esc(x.t) : ""}</em></label></div>`).join("")).join("")}</div>` : ""}
-  <div class="card"><div class="bar"><button class="btn" id="csv">Télécharger le CSV d'import Hello Harel</button><button class="btn ghost" id="csv2">Détail par zone (CSV)</button><button class="btn ghost" id="csv4">Conditionnements à retirer dans HH (CSV)</button><button class="btn ghost" id="csv3">Arrivages reçus à rentrer (CSV)</button></div>
+  <div class="card"><div class="bar"><button class="btn" id="csv">Télécharger le CSV d'import Hello Harel</button><button class="btn ghost" id="csv2">Détail par zone (CSV)</button><button class="btn ghost" id="csv5">Fournisseurs à ajouter au catalogue d'achat HH (CSV)</button><button class="btn ghost" id="csv4">Conditionnements à retirer dans HH (CSV)</button><button class="btn ghost" id="csv3">Arrivages reçus à rentrer (CSV)</button></div>
   <p class="sub">Dans Hello Harel : Stock › Inventaires › créer l'inventaire, « Importer », choisir ce fichier. Les produits présents dans deux zones sont additionnés.</p></div>
   <div class="bar sels"><label>Zone<select id="sel-bz"><option value="">Toutes les zones</option>${opts(ZONES.map(z => [z.c, z.n]), bz)}</select></label></div>
   <div class="card"><table><tr><th>Produit</th><th class="n">Total</th><th>Par zone</th></tr>${L.map(r => `<tr><td>${esc(r.p.n)}</td><td class="n">${fmt(r.t)} ${UN[r.p.b]}</td><td>${Object.entries(r.zones).map(([z, t]) => `${z} ${fmt(t)}`).join(" · ")}</td></tr>`).join("") || `<tr><td colspan="3">Rien de compté à cette date.</td></tr>`}</table></div>`;
@@ -453,6 +454,10 @@ document.addEventListener("click", e => {
       lots.forEach(l => out.push([r.p.c + " - " + r.p.n, r.p.pk, r.p.loc, "", "", "", l[2], l[2], l[0], l[1], "", ""]));
       if (reste > 1e-9 || (!lots.length && !r.items.length)) out.push([r.p.c + " - " + r.p.n, r.p.pk, r.p.loc, "", "", "", reste, reste, "", "", "", ""]); });
     telecharger("inventaire-MP-HH-" + S.date + ".csv", [ent, ...out]);
+  } else if (e.target.id === "csv5"){
+    const out = [["Code HH","Produit","Fournisseur à ajouter au catalogue d'achat","Unité"]];
+    for (const id in S.xf) for (const n of S.xf[id]) out.push([PID[id]?.c, PID[id]?.n, n, UN[PID[id]?.b]]);
+    telecharger("fournisseurs-a-ajouter-catalogue-HH-" + S.date + ".csv", out);
   } else if (e.target.id === "csv4"){
     const out = [["Code HH","Produit","Conditionnement","Problème","Précision","Signalé par","Date"]];
     for (const id in S.rm) for (const x of S.rm[id]) out.push([PID[id]?.c, PID[id]?.n, x.n, x.m, x.t || "", x.par || "", x.d || ""]);
