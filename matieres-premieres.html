@@ -210,13 +210,15 @@ function ligne(z, p){
     <div class="mini"><button data-zero="${k}">${c.zero ? "✓ Rien en stock" : "Rien en stock"}</button>${lot}<button data-fx="${p.id}">✎ Conditionnements</button><button data-fo="${p.id}">⇄ Fournisseur</button><button data-ns="${p.id}">${isNS(p) ? "↩ Remettre en stock" : "✕ Plus stocké"}</button><button data-rm="${p.id}">${(S.rm[p.id] || []).length ? "⚠ À retirer dans HH (" + S.rm[p.id].length + ")" : "⚠ Conditionnement à retirer"}</button><button data-photo="${p.id}">📷 ${Photos.has("mp:" + p.id) ? "Changer la photo" : "Photo"}</button></div></div>`;
 }
 const jjmm = d => d ? d.slice(8, 10) + "/" + d.slice(5, 7) : "—";
-/* rouge : rien saisi · orange : saisie partielle ou commande en attente · vert : tous les stocks fournisseurs validés */
+/* rouge : rien saisi · orange : plusieurs fournisseurs et pas tous saisis · vert : un seul fournisseur saisi, ou tous saisis */
 function statutP(p, c){
-  const G = groupesStock(p), cs = c?.s || {}, att = PENDL(p.id).length > 0;
-  if (!compte(c)) return ["r", "Rien saisi"];
-  const tousFaits = c.zero || !G.length || G.every(g => cs["f" + g.nom] > 0 || cs["f" + g.nom.toLowerCase()] > 0);
-  if (!tousFaits) return ["o", "Stock partiel"];
-  return att ? ["o", "Commande en attente"] : ["v", "Validé"];
+  const G = groupesStock(p), cs = c?.s || {}, ok = compte(c);
+  const entre = g => cs["f" + g.nom] > 0 || cs["f" + g.nom.toLowerCase()] > 0;
+  const recu = Object.values(S.counts[ck("ATT", p.id)]?.s || {}).some(v => v > 0);   // arrivage reçu, pas encore rentré dans HH
+  if (!G.length) return ok || recu ? ["v", "Validé"] : ["r", "Rien saisi"];   // seule ligne = la commande
+  if (!ok) return recu ? ["o", "Arrivage à rentrer"] : ["r", "Rien saisi"];
+  if (c.zero || G.length === 1 || G.every(entre)) return ["v", "Validé"];   // un seul fournisseur et saisi, ou tous saisis
+  return ["o", "Stock partiel"];   // plusieurs fournisseurs, pas tous saisis
 }
 /* « plus stocké » : choisi sur place, sinon les anciennes fiches HH sont rangées là d'office */
 const isNS = p => S.ns?.[p.id] !== undefined ? S.ns[p.id] === 1 : !!p.anc;
@@ -275,7 +277,7 @@ function vueZone(){
   $("#main").innerHTML = `<div class="bar"><button class="btn ghost" id="back">‹ Zones</button><h1 style="margin:0;font-size:22px">${esc(Z.n)}</h1><span class="p-c">${a} / ${b}</span></div>
   <div class="prog"><i style="width:${b ? Math.round(100 * a / b) : 0}%"></i></div>
   <div class="bar"><input type="search" id="q" placeholder="Produit, code ou fournisseur" value="${esc(q)}" autocomplete="off"></div>
-  <div class="leg"><span class="stb r" style="margin:0">Rien saisi</span><span class="stb o" style="margin:0">En attente / partiel</span><span class="stb v" style="margin:0">Validé</span></div>
+  <div class="leg"><span class="stb r" style="margin:0">Rien saisi</span><span class="stb o" style="margin:0">Plusieurs fournisseurs, pas tous saisis</span><span class="stb v" style="margin:0">Validé</span></div>
   <div class="bar sels">
     <label>Afficher <select id="sel-fil">${opts([["tous", "Tous (plus stockés en bas)"], ["todo", "À compter"], ["faits", "Déjà comptés"], ["ns", "Plus stockés / anciennes fiches"], ["tout", "Tout, mélangé"]], filtre)}</select></label>
     <label>Fournisseur <select id="sel-fo"><option value="">Tous (${fz.length})</option>${opts(fz.map(([f, n]) => [f, `${f} · ${n}`]), fourn)}</select></label>
