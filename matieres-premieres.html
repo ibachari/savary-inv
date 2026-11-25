@@ -48,6 +48,7 @@ h1{font-family:"Barlow Condensed",sans-serif;font-size:26px;margin:16px 0 4px}
 .p.st-r{border-left:6px solid #c0392b}.p.st-o{border-left:6px solid #e67e22}.p.st-v{border-left:6px solid #2e8b57}
 .stb{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:2px 8px;border-radius:99px;color:#fff;margin-left:6px;vertical-align:middle}
 .stb.r{background:#c0392b}.stb.o{background:#e67e22}.stb.v{background:#2e8b57}
+.grp.prio{background:#fdecea;color:#c0392b;border-top-color:#c0392b!important;font-weight:700}.grp.prio.ok{background:#e8f5ee;color:#2e8b57;border-top-color:#2e8b57!important}
 .leg{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;margin:4px 0 8px}.p.low{border-left:5px solid var(--signal)}
 .p-h{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
 .p-n{font-weight:600}.p-c{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-2)}
@@ -260,9 +261,15 @@ function vueZone(){
     ajoutL = trier(DATA.filter(p => !dans.has(p.id) && (!mots || hay(p).includes(mots)) && (!fourn || gnom(p) === fourn) && (!origine || p.z.includes(origine)))).slice(0, 40); }
   const fz = fournisseursZone(ajout ? DATA : tous);
   let corps = "";
-  if (tri === "fo" && !mots){ const g = {}; L.forEach(p => (g[gnom(p)] = g[gnom(p)] || []).push(p));
-    corps = Object.keys(g).map(f => `<div class="grp" style="border-top-color:${couleur(f)};color:${couleur(f)}"><span>${esc(f)}</span><small>${g[f].length} produit(s)</small></div>${g[f].map(p => ligne(zone, p)).join("")}`).join(""); }
-  else corps = L.map(p => ligne(zone, p)).join("");
+  const parF = A => { const g = {}; A.forEach(p => (g[gnom(p)] = g[gnom(p)] || []).push(p));
+    return Object.keys(g).map(f => `<div class="grp" style="border-top-color:${couleur(f)};color:${couleur(f)}"><span>${esc(f)}</span><small>${g[f].length} produit(s)</small></div>${g[f].map(p => ligne(zone, p)).join("")}`).join(""); };
+  const fait = p => compte(S.counts[ck(zone, p.id)]);
+  if (mots) corps = [...L.filter(p => !fait(p)), ...L.filter(fait)].map(p => ligne(zone, p)).join("");   // recherche : non saisis d'abord
+  else if (filtre === "tous" || filtre === "tout"){ const nonF = L.filter(p => !fait(p)), faits = L.filter(fait);
+    const rangee = A => tri === "fo" ? parF(A) : A.map(p => ligne(zone, p)).join("");
+    corps = (nonF.length ? `<div class="grp prio"><span>À saisir</span><small>${nonF.length} produit(s) pas encore saisis</small></div>${rangee(nonF)}` : "")
+      + (faits.length ? `<div class="grp prio ok"><span>Déjà saisis</span><small>${faits.length} produit(s)</small></div>${rangee(faits)}` : ""); }
+  else corps = tri === "fo" ? parF(L) : L.map(p => ligne(zone, p)).join("");
   if (nsL.length) corps += `<div class="grp" style="border-top-color:#78837c;color:#78837c"><span>Plus stockés / anciennes fiches</span><small>${nsL.length} produit(s)</small></div>${nsL.map(p => ligne(zone, p)).join("")}`;
   const avait = document.activeElement?.id === "q", pos = avait ? document.activeElement.selectionStart : 0;   // le focus doit survivre au redessin
   $("#main").innerHTML = `<div class="bar"><button class="btn ghost" id="back">‹ Zones</button><h1 style="margin:0;font-size:22px">${esc(Z.n)}</h1><span class="p-c">${a} / ${b}</span></div>
