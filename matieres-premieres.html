@@ -122,7 +122,7 @@ try { const op = localStorage.getItem("op:" + S.date); if (op) S.who = op; } cat
 if (window.self !== window.top) document.getElementById("lien-conso").hidden = true;   // dans la page à onglets, le lien est inutile
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
 const ck = (z, id) => `${S.date}|${z}|${id}`;
-let view = "home", zone = null, filtre = "todo", q = "", ajout = false, tab = "inv", fourn = "", tri = "fo", origine = "";
+let view = "home", zone = null, filtre = "tous", q = "", ajout = false, tab = "inv", fourn = "", tri = "fo", origine = "";
 const formats = p => S.fx[p.id] || p.f;
 /* fournisseurs d'un produit : celui choisi sur place passe en premier (les autres restent listés) */
 const fo = p => { const c = S.fo?.[p.id], b = fournisseursOrdre(p); return c ? [c, ...b.filter(x => x !== c)] : b; };
@@ -282,7 +282,7 @@ document.addEventListener("input", e => {
 });
 document.addEventListener("click", e => {
   const b = e.target.closest("button,a"); if (!b) return;
-  if (b.dataset.z){ zone = b.dataset.z; view = "zone"; filtre = "todo"; q = ""; ajout = false; rendre(); scrollTo(0, 0); }
+  if (b.dataset.z){ zone = b.dataset.z; view = "zone"; filtre = "tous"; q = ""; ajout = false; rendre(); scrollTo(0, 0); }
   else if (b.id === "back"){ view = "home"; rendre(); }
   else if (b.id === "t-inv"){ tab = "inv"; rendre(); } else if (b.id === "t-bil"){ tab = "bil"; rendre(); }
   else if (b.dataset.st){ const i = b.parentElement.querySelector("input"); const pas = i.dataset.v || i.dataset.s ? 0.5 : 1; i.value = Math.max(0, Math.round(((Number(i.value) || 0) + pas * Number(b.dataset.st)) * 1000) / 1000) || ""; i.dispatchEvent(new Event("input", {bubbles: true})); }
