@@ -44,7 +44,11 @@ h1{font-family:"Barlow Condensed",sans-serif;font-size:26px;margin:16px 0 4px}
 .chips button{border:1px solid var(--line);background:var(--card);border-radius:99px;padding:6px 12px;font-size:12.5px}
 .chips button[aria-pressed=true]{background:var(--ink);color:#fff;border-color:var(--ink)}
 .p{background:var(--card);border:1px solid var(--line);border-radius:8px;margin:10px 0;padding:12px 14px}
-.p.done{border-left:5px solid var(--accent)}.p.low{border-left:5px solid var(--signal)}
+.p.done{border-left:5px solid var(--accent)}
+.p.st-r{border-left:6px solid #c0392b}.p.st-o{border-left:6px solid #e67e22}.p.st-v{border-left:6px solid #2e8b57}
+.stb{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:2px 8px;border-radius:99px;color:#fff;margin-left:6px;vertical-align:middle}
+.stb.r{background:#c0392b}.stb.o{background:#e67e22}.stb.v{background:#2e8b57}
+.leg{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;margin:4px 0 8px}.p.low{border-left:5px solid var(--signal)}
 .p-h{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
 .p-n{font-weight:600}.p-c{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-2)}
 .p-tot{font-family:"IBM Plex Mono",monospace;font-weight:600;white-space:nowrap}
@@ -74,6 +78,7 @@ select{min-height:42px;border:1px solid var(--line);border-radius:var(--r);paddi
 dialog{border:1px solid var(--line);border-radius:10px;padding:16px;max-width:520px;width:calc(100% - 24px)}dialog::backdrop{background:rgba(18,33,29,.45)}
 dialog input[type=text],dialog input[type=number]{min-height:42px;border:1px solid var(--line);border-radius:var(--r);padding:6px 8px;width:100%}
 .fours{margin:8px 0;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:#fff}.fours .ft{font-size:12px;letter-spacing:.08em;text-transform:uppercase;opacity:.7;margin-bottom:4px}.fours .fh{display:flex;justify-content:space-between;gap:8px;margin:8px 0 2px;font-size:14px}.fours .fh span{opacity:.75;font-size:13px}
+.fours .vieux{opacity:.6}
 .fx{display:grid;grid-template-columns:1fr 100px 40px;gap:6px;margin:6px 0}
 [hidden]{display:none!important}
 </style>
@@ -158,13 +163,28 @@ function rendre(){
   $("#t-inv").className = tab === "inv" ? "on" : ""; $("#t-bil").className = tab === "bil" ? "on" : "";
   if (tab === "bil") return bilan();
   if (view === "zone") return vueZone();
+  if (view === "att") return vueAtt();
   accueil();
 }
 function accueil(){
   const jour = S.date.split("-").reverse().join("/");
   $("#main").innerHTML = `<h1>Inventaire du ${jour}</h1><p class="sub">Choisissez la zone où vous êtes. ${DATA.length} matières premières achetées en 2026.</p>
   <div class="tiles">${ZONES.map(z => { const [a, b] = avancement(z.c); const st = !a ? "todo" : (a >= b && b ? "full" : "part");
-    return `<button class="tile ${st}" data-z="${z.c}"><b>${esc(z.n)}</b><small>${b ? `${a} / ${b} comptés` : "à remplir"}</small></button>`; }).join("")}</div>`;
+    return `<button class="tile ${st}" data-z="${z.c}"><b>${esc(z.n)}</b><small>${b ? `${a} / ${b} comptés` : "à remplir"}</small></button>`; }).join("")}</div>
+  <div class="tiles"><button class="tile ${nbRecu() ? "part" : "todo"}" data-att="1"><b>Arrivages en attente</b><small>${PENDING_N()} commandes pas encore rentrées${nbRecu() ? " · " + nbRecu() + " reçues à rentrer" : ""}</small></button></div>`;
+}
+const PENDING_N = () => DATA.reduce((n, p) => n + PENDL(p.id).length, 0);
+const nbRecu = () => { let n = 0; for (const k in S.counts){ const x = cle(k); if (x.d === S.date && x.z === "ATT") n += Object.values(S.counts[k].s || {}).filter(v => v > 0).length; } return n; };
+function vueAtt(){
+  const L = []; DATA.forEach(p => PENDL(p.id).forEach(x => L.push({p, x})));
+  L.sort((a, b) => a.x[5].localeCompare(b.x[5]));
+  const recent = L.filter(r => jours(r.x[5]) <= 30), vieux = L.filter(r => jours(r.x[5]) > 30);
+  const bloc = (t, A) => A.length ? `<div class="card"><b>${t} (${A.length})</b>${A.map(({p, x}) => { const u = UN[p.b], kA = ck("ATT", p.id);
+    return `<div class="row"><label>${esc(p.n)}<em>${esc(x[2])} · ${fmt(x[4])} ${u} commandés le ${dmy(x[6])} · prévus le ${dmy(x[5])} · ${Math.max(0, jours(x[5]))} j</em></label>
+    ${champNb(kA, `data-s="p${x[0]}"`, S.counts[kA]?.s?.["p" + x[0]], "any", "decimal", "Reçu de " + x[2] + " en " + u)}</div>`; }).join("")}</div>` : "";
+  $("#main").innerHTML = `<div class="bar"><button class="btn ghost" id="back">‹ Zones</button><h1 style="margin:0;font-size:22px">Arrivages en attente</h1></div>
+  <p class="sub">Commandés dans Hello Harel mais pas encore rentrés en stock. Saisissez ce qui est réellement arrivé : cela reste à part du stock compté (export « arrivages à rentrer »).</p>
+  ${bloc("Commandes récentes", recent)}${bloc("Anciennes commandes (plus de 30 jours, probablement à clôturer)", vieux)}`;
 }
 function champNb(k, attr, val, step, mode, label){
   return `<span class="st"><button class="stp" data-st="-1" data-for="${k}" ${attr} aria-label="Moins">−</button>
@@ -176,10 +196,12 @@ function ligne(z, p){
   const rows = F.map(f => `<div class="row"><label>${f.f ? esc(f.f) + " — " : ""}${esc(f.n || "colis")} de ${fmt(f.q)} ${UN[p.b]}${f.l ? `<em>${esc(f.l)}</em>` : ""}</label>
     ${champNb(k, `data-f="${f.q}"`, c.f?.[f.q], 1, "numeric", "Colis de " + fmt(f.q))}</div>`).join("");
   const lot = p.lot ? `<button data-lot="${k}">${c.lot || c.dlc ? "Lot / DLC : " + esc(c.lot || "—") + " · " + esc(c.dlc || "—") : "+ lot / DLC"}</button>` : "";
-  return `<div class="p ${ok ? "done" : ""}" data-pid="${p.id}"><div class="p-h"><div style="display:flex;gap:10px;align-items:flex-start">${Photos.miniature("mp:" + p.id)}<div><span class="chipf" style="background:${couleur(gnom(p))}">${esc(fo(p)[0] || INCONNU)}</span><div class="p-n">${esc(p.n)}</div>
+  const [sc, sl] = statutP(p, c);
+  return `<div class="p ${ok ? "done" : ""} st-${sc}" data-pid="${p.id}"><div class="p-h"><div style="display:flex;gap:10px;align-items:flex-start">${Photos.miniature("mp:" + p.id)}<div><span class="chipf" style="background:${couleur(gnom(p))}">${esc(fo(p)[0] || INCONNU)}</span><div class="p-n">${esc(p.n)}</div>
     <div class="p-c">${esc(p.c)}${fo(p).length > 1 ? " · aussi " + esc(fo(p).slice(1).join(", ")) : ""}${p.conf === "basse" ? " · zone à confirmer" : ""}${p.anc ? " · ANCIENNE FICHE HH" : ""}${p.z.length > 1 ? " · aussi " + p.z.filter(x => x !== z).join("/") : ""}</div>
     ${stockHH(p) ? `<div class="hh">Stock HH : ${fmt(stockHH(p))} ${UN[p.b]}</div>` : ""}</div></div>
     <div class="p-tot ${ok && !t ? "zero" : ""}" id="tot-${p.id}">${ok ? fmt(t) + " " + UN[p.b] : "—"}</div></div>
+    <div style="margin:0 0 6px"><span class="stb ${sc}" id="stb-${p.id}" style="margin-left:0">${sl}</span></div>
     ${rows}
     ${blocFournisseurs(p, k, c)}
     <div class="row"><label>${F.length ? "En vrac / ouvert" : "Quantité"} (${UN[p.b]})</label>
@@ -187,17 +209,33 @@ function ligne(z, p){
     <div class="mini"><button data-zero="${k}">${c.zero ? "✓ Rien en stock" : "Rien en stock"}</button>${lot}<button data-fx="${p.id}">✎ Conditionnements</button><button data-fo="${p.id}">⇄ Fournisseur</button><button data-photo="${p.id}">📷 ${Photos.has("mp:" + p.id) ? "Changer la photo" : "Photo"}</button></div></div>`;
 }
 const jjmm = d => d ? d.slice(8, 10) + "/" + d.slice(5, 7) : "—";
+/* rouge : rien saisi · orange : saisie partielle ou commande en attente · vert : tous les stocks fournisseurs validés */
+function statutP(p, c){
+  const G = groupesStock(p), cs = c?.s || {}, att = PENDL(p.id).length > 0;
+  if (!compte(c)) return ["r", "Rien saisi"];
+  const tousFaits = c.zero || !G.length || G.every(g => cs["f" + g.nom] > 0 || cs["f" + g.nom.toLowerCase()] > 0);
+  if (!tousFaits) return ["o", "Stock partiel"];
+  return att ? ["o", "Commande en attente"] : ["v", "Validé"];
+}
+const PENDL = id => (typeof PEND !== "undefined" && PEND[id]) || [];
+const jours = d => Math.floor((Date.now() - Date.parse(d)) / 864e5);
+const dmy = d => d ? d.split("-").reverse().join("/") : "—";
 function blocFournisseurs(p, k, c){
   const G = groupesStock(p), tous = tousF.has(p.id), u = UN[p.b], cs = c.s || {};
   const sans = tous ? fournisseursOrdre(p).filter(n => !G.some(g => g.nom.toLowerCase() === n.toLowerCase())) : [];
-  if (!G.length && !(p.fo || []).length) return "";
-  const ligneIt = x => `<div class="row"><label>arrivage du ${jjmm(x[8])}${x[6] ? " · lot " + esc(x[6]) : ""}${x[7] ? " · DLC " + esc(x[7].split("-").reverse().join("/")) : ""}<em>HH : ${fmt(x[5])} ${u} · ${esc(x[4])}</em></label>
-    ${champNb(k, `data-s="i${x[0]}"`, cs["i" + x[0]], "any", "decimal", "Quantité de cet arrivage en " + u)}</div>`;
-  const entete = g => `<div class="fh"><b>${esc(g.nom)}</b><span>reste ${fmt(g.tot)} ${u}${g.rec ? " · dernier arrivage " + jjmm(g.rec) : ""}</span></div>`;
-  return `<div class="fours"><div class="ft">Stock restant par fournisseur</div>
-    ${G.map(g => entete(g) + g.items.map(ligneIt).join("")).join("") || '<p class="sub" style="margin:4px 0">Plus aucun stock dans Hello Harel.</p>'}
-    ${sans.map(n => `<div class="fh"><b>${esc(n)}</b><span>plus de stock dans HH</span></div><div class="row"><label>Quantité trouvée (${u})</label>${champNb(k, `data-s="f${esc(n)}"`, cs["f" + n], "any", "decimal", "Quantité " + n)}</div>`).join("")}
-    ${(p.fo || []).length > G.length || !G.length ? `<div class="mini"><button data-allf="${p.id}">${tous ? "Masquer les autres fournisseurs" : "Tous les fournisseurs"}</button></div>` : ""}</div>`;
+  if (!G.length && !(p.fo || []).length && !PENDL(p.id).length) return "";
+  const ligneF = (nom, att) => `<div class="row"><label><b>${esc(nom)}</b><em>${att}</em></label>${champNb(k, `data-s="f${esc(nom)}"`, cs["f" + nom], "any", "decimal", "Stock " + nom + " en " + u)}</div>`;
+  const att = PENDL(p.id), kA = ck("ATT", p.id), cA = S.counts[kA] || {}, recu = Object.values(cA.s || {}).reduce((a, v) => a + (Number(v) || 0), 0);
+  return `<div class="fours"><div class="ft">Stock par fournisseur</div>
+    ${G.map(g => ligneF(g.nom, `HH : ${fmt(g.tot)} ${u} · dernier arrivage ${jjmm(g.rec)}`)).join("") || '<p class="sub" style="margin:4px 0">Plus aucun stock dans Hello Harel.</p>'}
+    ${sans.map(n => ligneF(n, "plus de stock dans HH")).join("")}
+    ${(p.fo || []).length > G.length || !G.length ? `<div class="mini"><button data-allf="${p.id}">${tous ? "Masquer les autres fournisseurs" : "Tous les fournisseurs"}</button></div>` : ""}
+    ${att.length ? `<div class="ft" style="margin-top:10px">Commandé, pas encore rentré dans HH${recu ? ` · ${fmt(recu)} ${u} reçus à rentrer` : ""}</div>${att.map(x => lignePend(p, x)).join("")}` : ""}</div>`;
+}
+function lignePend(p, x){
+  const kA = ck("ATT", p.id), v = S.counts[kA]?.s?.["p" + x[0]], u = UN[p.b], j = jours(x[5]), vieux = j > 30;
+  return `<div class="row ${vieux ? "vieux" : ""}"><label>${esc(x[2])} · ${fmt(x[4])} ${u}<em>commandé le ${dmy(x[6])} · prévu le ${dmy(x[5])}${j > 0 ? ` · ${j} j de retard` : ""}${vieux ? " · ancienne commande ?" : ""}</em></label>
+    ${champNb(kA, `data-s="p${x[0]}"`, v, "any", "decimal", "Reçu de " + x[2] + " en " + u)}</div>`;
 }
 function fournisseursZone(L){ const m = {}; L.forEach(p => m[gnom(p)] = (m[gnom(p)] || 0) + 1); return Object.entries(m).sort((a, b) => ordreF(a[0]).localeCompare(ordreF(b[0]), "fr")); }
 const opts = (L, cur) => L.map(([v, l]) => `<option value="${esc(v)}" ${v === cur ? "selected" : ""}>${esc(l)}</option>`).join("");
@@ -221,6 +259,7 @@ function vueZone(){
   $("#main").innerHTML = `<div class="bar"><button class="btn ghost" id="back">‹ Zones</button><h1 style="margin:0;font-size:22px">${esc(Z.n)}</h1><span class="p-c">${a} / ${b}</span></div>
   <div class="prog"><i style="width:${b ? Math.round(100 * a / b) : 0}%"></i></div>
   <div class="bar"><input type="search" id="q" placeholder="Produit, code ou fournisseur" value="${esc(q)}" autocomplete="off"></div>
+  <div class="leg"><span class="stb r" style="margin:0">Rien saisi</span><span class="stb o" style="margin:0">En attente / partiel</span><span class="stb v" style="margin:0">Validé</span></div>
   <div class="bar sels">
     <label>Afficher <select id="sel-fil">${opts([["todo", "À compter"], ["tous", "Tous"], ["faits", "Déjà comptés"]], filtre)}</select></label>
     <label>Fournisseur <select id="sel-fo"><option value="">Tous (${fz.length})</option>${opts(fz.map(([f, n]) => [f, `${f} · ${n}`]), fourn)}</select></label>
@@ -278,12 +317,15 @@ document.addEventListener("input", e => {
   const v = t.value === "" ? 0 : Number(t.value.replace(",", ".")); const x = cle(t.dataset.k);
   majCompte(t.dataset.k, c => { if (t.dataset.v) c.vrac = v; else if (t.dataset.s){ c.s = c.s || {}; if (v) c.s[t.dataset.s] = v; else delete c.s[t.dataset.s]; } else c.f[t.dataset.f] = v; if (v) c.zero = false; });
   const c = S.counts[t.dataset.k], el = document.getElementById("tot-" + x.id);
-  if (el){ const tt = total(c, x.p); el.textContent = compte(c) ? fmt(tt) + " " + UN[x.p.b] : "—"; el.parentElement.parentElement.classList.toggle("done", compte(c)); }
+  if (el){ const tt = total(c, x.p); el.textContent = compte(c) ? fmt(tt) + " " + UN[x.p.b] : "—"; el.parentElement.parentElement.classList.toggle("done", compte(c));
+    const card = el.parentElement.parentElement, [sc, sl] = statutP(x.p, c), sb = document.getElementById("stb-" + x.id);
+    card.classList.remove("st-r", "st-o", "st-v"); card.classList.add("st-" + sc); if (sb){ sb.className = "stb " + sc; sb.textContent = sl; } }
 });
 document.addEventListener("click", e => {
   const b = e.target.closest("button,a"); if (!b) return;
   if (b.dataset.z){ zone = b.dataset.z; view = "zone"; filtre = "tous"; q = ""; ajout = false; rendre(); scrollTo(0, 0); }
   else if (b.id === "back"){ view = "home"; rendre(); }
+  else if (b.dataset.att){ view = "att"; rendre(); scrollTo(0, 0); }
   else if (b.id === "t-inv"){ tab = "inv"; rendre(); } else if (b.id === "t-bil"){ tab = "bil"; rendre(); }
   else if (b.dataset.st){ const i = b.parentElement.querySelector("input"); const pas = i.dataset.v || i.dataset.s ? 0.5 : 1; i.value = Math.max(0, Math.round(((Number(i.value) || 0) + pas * Number(b.dataset.st)) * 1000) / 1000) || ""; i.dispatchEvent(new Event("input", {bubbles: true})); }
   else if (b.dataset.fx){ ouvrirFx(Number(b.dataset.fx)); }
@@ -322,7 +364,7 @@ $("#date").onchange = e => { S.date = e.target.value || today(); save(); pull();
 /* ---------- bilan et export ---------- */
 function lignesBilan(){
   const par = {};
-  for (const k in S.counts){ const x = cle(k); if (x.d !== S.date || !x.p || !compte(S.counts[k])) continue;
+  for (const k in S.counts){ const x = cle(k); if (x.d !== S.date || x.z === "ATT" || !x.p || !compte(S.counts[k])) continue;
     const c = S.counts[k], r = par[x.id] = par[x.id] || {p: x.p, t: 0, zones: {}, lots: [], items: []};
     const sS = Object.values(c.s || {}).reduce((a, v) => a + (Number(v) || 0), 0); for (const kk in c.s || {}) if (c.s[kk] > 0) r.items.push([kk, Number(c.s[kk])]);
     const t = total(c, x.p); r.t += t; r.zones[x.z] = (r.zones[x.z] || 0) + t; if ((c.lot || c.dlc) && t - sS > 0) r.lots.push([c.lot || "", c.dlc || "", t - sS]); }
@@ -334,7 +376,7 @@ function bilan(){
   ZONES.forEach(z => nz[z.c] = avancement(z.c));
   $("#main").innerHTML = `<h1>Bilan du ${S.date.split("-").reverse().join("/")}</h1>
   <div class="card"><table><tr><th>Zone</th><th class="n">Comptés</th><th class="n">Prévus</th></tr>${ZONES.map(z => `<tr><td>${esc(z.n)}</td><td class="n">${nz[z.c][0]}</td><td class="n">${nz[z.c][1]}</td></tr>`).join("")}</table></div>
-  <div class="card"><div class="bar"><button class="btn" id="csv">Télécharger le CSV d'import Hello Harel</button><button class="btn ghost" id="csv2">Détail par zone (CSV)</button></div>
+  <div class="card"><div class="bar"><button class="btn" id="csv">Télécharger le CSV d'import Hello Harel</button><button class="btn ghost" id="csv2">Détail par zone (CSV)</button><button class="btn ghost" id="csv3">Arrivages reçus à rentrer (CSV)</button></div>
   <p class="sub">Dans Hello Harel : Stock › Inventaires › créer l'inventaire, « Importer », choisir ce fichier. Les produits présents dans deux zones sont additionnés.</p></div>
   <div class="bar sels"><label>Zone<select id="sel-bz"><option value="">Toutes les zones</option>${opts(ZONES.map(z => [z.c, z.n]), bz)}</select></label></div>
   <div class="card"><table><tr><th>Produit</th><th class="n">Total</th><th>Par zone</th></tr>${L.map(r => `<tr><td>${esc(r.p.n)}</td><td class="n">${fmt(r.t)} ${UN[r.p.b]}</td><td>${Object.entries(r.zones).map(([z, t]) => `${z} ${fmt(t)}`).join(" · ")}</td></tr>`).join("") || `<tr><td colspan="3">Rien de compté à cette date.</td></tr>`}</table></div>`;
@@ -349,14 +391,20 @@ document.addEventListener("click", e => {
     const ent = ["Product","Packaging","Location","Stock item","Supplier","Expected quantity (base unit)","Quantity (packaging)","Quantity (base unit)","Batch number","Expiration date","Unit price (base unit)","Last purchase price"];
     const out = [];
     lignesBilan().forEach(r => { const lots = r.lots.filter(l => l[0] || l[1]); const sIt = r.items.reduce((a, x) => a + x[1], 0), reste = r.t - sIt - lots.reduce((s, l) => s + l[2], 0);
-      r.items.forEach(([kk, q]) => { const it = kk[0] === "i" ? IT[kk.slice(1)] : null;
-        out.push([r.p.c + " - " + r.p.n, r.p.pk, it ? it[4] : r.p.loc, it ? it[1] : "", it ? (it[3] ? it[3] + " - " : "") + it[2] : kk.slice(1), it ? it[5] : "", q, q, it ? it[6] : "", it ? it[7] : "", "", ""]); });
+      r.items.forEach(([kk, q]) => { const it = kk[0] === "i" ? IT[kk.slice(1)] : null, g = kk[0] === "f" ? groupesStock(r.p).find(z => z.nom === kk.slice(1)) : null, i0 = g?.items[0];
+        out.push([r.p.c + " - " + r.p.n, r.p.pk, it ? it[4] : (i0 ? i0[4] : r.p.loc), it ? it[1] : "", it ? (it[3] ? it[3] + " - " : "") + it[2] : (i0 && i0[3] ? i0[3] + " - " : "") + kk.slice(1), it ? it[5] : (g ? g.tot : ""), q, q, it ? it[6] : "", it ? it[7] : "", "", ""]); });
       lots.forEach(l => out.push([r.p.c + " - " + r.p.n, r.p.pk, r.p.loc, "", "", "", l[2], l[2], l[0], l[1], "", ""]));
       if (reste > 1e-9 || (!lots.length && !r.items.length)) out.push([r.p.c + " - " + r.p.n, r.p.pk, r.p.loc, "", "", "", reste, reste, "", "", "", ""]); });
     telecharger("inventaire-MP-HH-" + S.date + ".csv", [ent, ...out]);
+  } else if (e.target.id === "csv3"){
+    const out = [["Date","Code","Produit","Fournisseur","Commande HH","Unité","Quantité commandée","Commandée le","Prévue le","Quantité reçue","Compté par"]];
+    for (const k in S.counts){ const x = cle(k); if (x.d !== S.date || x.z !== "ATT" || !x.p) continue; const c = S.counts[k];
+      for (const kk in c.s || {}){ if (!(c.s[kk] > 0)) continue; const a = PENDL(x.id).find(y => "p" + y[0] === kk); if (!a) continue;
+        out.push([x.d, x.p.c, x.p.n, a[2], a[1], UN[x.p.b], a[4], a[6], a[5], c.s[kk], c.who || ""]); } }
+    telecharger("arrivages-a-rentrer-" + S.date + ".csv", out);
   } else if (e.target.id === "csv2"){
     const out = [["Date","Zone","Code","Produit","Unité","Quantité","Lot","DLC","Compté par"]];
-    for (const k in S.counts){ const x = cle(k); if (x.d !== S.date || !x.p || !compte(S.counts[k])) continue; const c = S.counts[k];
+    for (const k in S.counts){ const x = cle(k); if (x.d !== S.date || x.z === "ATT" || !x.p || !compte(S.counts[k])) continue; const c = S.counts[k];
       out.push([x.d, ZONES.find(z => z.c === x.z)?.n, x.p.c, x.p.n, UN[x.p.b], total(c, x.p), c.lot || "", c.dlc || "", c.who || ""]); }
     telecharger("inventaire-MP-zones-" + S.date + ".csv", out);
   }
@@ -407,7 +455,7 @@ async function pull(){
       const loc = S.counts[row.cle]; if (S.pending[row.cle] || (loc && (loc.t || 0) >= Date.parse(row.maj || 0))) continue;
       let f = {}; try { f = JSON.parse(row.formats || "{}"); } catch (e) {} const zz = !!f._z, ss = f._s || {}; delete f._z; delete f._s;
       S.counts[row.cle] = {f, s: ss, vrac: Number(row.vrac) || 0, lot: row.lot || "", dlc: row.dlc || "", who: row.compte_par, zero: zz, t: Date.parse(row.maj) || 0};
-      const x = cle(row.cle); if (x.z && !PID[x.id]?.z.includes(x.z)){ (S.extra[x.z] = S.extra[x.z] || []).includes(x.id) || S.extra[x.z].push(x.id); } n++;
+      const x = cle(row.cle); if (x.z && x.z !== "ATT" && !PID[x.id]?.z.includes(x.z)){ (S.extra[x.z] = S.extra[x.z] || []).includes(x.id) || S.extra[x.z].push(x.id); } n++;
     }
     save(); dot("ok", "synchronisé"); if (n) rendre();
   } catch (e) { dot("err", "hors ligne"); }
