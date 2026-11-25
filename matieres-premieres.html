@@ -227,6 +227,12 @@ function statutP(p, c){
 /* « plus stocké » : choisi sur place, sinon les anciennes fiches HH sont rangées là d'office */
 const isNS = p => S.ns?.[p.id] !== undefined ? S.ns[p.id] === 1 : !!p.anc;
 /* seuls comptent les arrivages attendus depuis moins d'une semaine (ou à venir) : le reste est ignoré */
+/* dernier arrivage d'un fournisseur sur ce produit (ou sur une fiche regroupée), même si son stock est vide */
+function dernierArr(p, nom){
+  const L0 = typeof LAST !== "undefined" ? LAST : {}, ids = [p.id, ...Object.entries(LIENS).filter(([q, t]) => t === p.id).map(([q]) => Number(q))];
+  let d = ""; for (const id of ids) for (const [n, v] of Object.entries(L0[id] || {})) if (n.toLowerCase() === nom.toLowerCase() && v > d) d = v;
+  return d;
+}
 const PENDL = id => [...((typeof PEND !== "undefined" && PEND[id]) || []), ...Object.entries(LIENS).filter(([q, t]) => t === id).flatMap(([q]) => (typeof PEND !== "undefined" && PEND[q]) || [])].filter(x => jours(x[5]) <= 7);
 const jours = d => Math.floor((Date.now() - Date.parse(d)) / 864e5);
 const dmy = d => d ? d.split("-").reverse().join("/") : "—";
@@ -237,8 +243,8 @@ function blocFournisseurs(p, k, c){
   const ligneF = (nom, att) => `<div class="row"><label><b>${esc(nom)}</b><em>${att}</em></label>${champNb(k, `data-s="f${esc(nom)}"`, cs["f" + nom], "any", "decimal", "Stock " + nom + " en " + u)}</div>`;
   const att = PENDL(p.id), kA = ck("ATT", p.id), cA = S.counts[kA] || {}, recu = Object.values(cA.s || {}).reduce((a, v) => a + (Number(v) || 0), 0);
   return `<div class="fours"><div class="ft">Stock par fournisseur</div>
-    ${G.map(g => ligneF(g.nom, `HH : ${fmt(g.tot)} ${u} · dernier arrivage ${jjmm(g.rec)}`)).join("") || '<p class="sub" style="margin:4px 0">Plus aucun stock dans Hello Harel.</p>'}
-    ${sans.map(n => ligneF(n, "plus de stock dans HH")).join("")}
+    ${G.map(g => ligneF(g.nom, `HH : <b>${fmt(g.tot)} ${u}</b> · dernier arrivage ${dmy(g.rec)}`)).join("") || '<p class="sub" style="margin:4px 0">Plus aucun stock dans Hello Harel.</p>'}
+    ${sans.map(n => { const d = dernierArr(p, n); return ligneF(n, `HH : <b>0 ${u}</b> · ${d ? "dernier arrivage " + dmy(d) : "aucun arrivage dans HH"}`); }).join("")}
     <div class="mini">${(p.fo || []).length > G.length || !G.length ? `<button data-allf="${p.id}">${tous ? "Masquer les autres fournisseurs" : "Tous les fournisseurs"}</button>` : ""}<button data-addf="${p.id}">+ Fournisseur</button></div>
     ${att.length ? `<div class="ft" style="margin-top:10px">Commandé, pas encore rentré dans HH${recu ? ` · ${fmt(recu)} ${u} reçus à rentrer` : ""}</div>${att.map(x => lignePend(p, x)).join("")}` : ""}</div>`;
 }
