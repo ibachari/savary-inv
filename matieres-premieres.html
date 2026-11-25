@@ -179,13 +179,13 @@ const nbRecu = () => { let n = 0; for (const k in S.counts){ const x = cle(k); i
 function vueAtt(){
   const L = []; DATA.forEach(p => PENDL(p.id).forEach(x => L.push({p, x})));
   L.sort((a, b) => a.x[5].localeCompare(b.x[5]));
-  const recent = L.filter(r => jours(r.x[5]) <= 30), vieux = L.filter(r => jours(r.x[5]) > 30);
+  const recent = L, vieux = [];
   const bloc = (t, A) => A.length ? `<div class="card"><b>${t} (${A.length})</b>${A.map(({p, x}) => { const u = UN[p.b], kA = ck("ATT", p.id);
     return `<div class="row"><label>${esc(p.n)}<em>${esc(x[2])} · ${fmt(x[4])} ${u} commandés le ${dmy(x[6])} · prévus le ${dmy(x[5])} · ${Math.max(0, jours(x[5]))} j</em></label>
     ${champNb(kA, `data-s="p${x[0]}"`, S.counts[kA]?.s?.["p" + x[0]], "any", "decimal", "Reçu de " + x[2] + " en " + u)}</div>`; }).join("")}</div>` : "";
   $("#main").innerHTML = `<div class="bar"><button class="btn ghost" id="back">‹ Zones</button><h1 style="margin:0;font-size:22px">Arrivages en attente</h1></div>
-  <p class="sub">Commandés dans Hello Harel mais pas encore rentrés en stock. Saisissez ce qui est réellement arrivé : cela reste à part du stock compté (export « arrivages à rentrer »).</p>
-  ${bloc("Commandes récentes", recent)}${bloc("Anciennes commandes (plus de 30 jours, probablement à clôturer)", vieux)}`;
+  <p class="sub">Commandés dans Hello Harel, attendus depuis moins d'une semaine et pas encore rentrés en stock. Saisissez ce qui est réellement arrivé : cela reste à part du stock compté (export « arrivages à rentrer »).</p>
+  ${bloc("Arrivages de moins d'une semaine", recent)}${bloc("Anciennes commandes (plus de 30 jours, probablement à clôturer)", vieux)}`;
 }
 function champNb(k, attr, val, step, mode, label){
   return `<span class="st"><button class="stp" data-st="-1" data-for="${k}" ${attr} aria-label="Moins">−</button>
@@ -222,7 +222,8 @@ function statutP(p, c){
 }
 /* « plus stocké » : choisi sur place, sinon les anciennes fiches HH sont rangées là d'office */
 const isNS = p => S.ns?.[p.id] !== undefined ? S.ns[p.id] === 1 : !!p.anc;
-const PENDL = id => (typeof PEND !== "undefined" && PEND[id]) || [];
+/* seuls comptent les arrivages attendus depuis moins d'une semaine (ou à venir) : le reste est ignoré */
+const PENDL = id => ((typeof PEND !== "undefined" && PEND[id]) || []).filter(x => jours(x[5]) <= 7);
 const jours = d => Math.floor((Date.now() - Date.parse(d)) / 864e5);
 const dmy = d => d ? d.split("-").reverse().join("/") : "—";
 function blocFournisseurs(p, k, c){
@@ -239,7 +240,7 @@ function blocFournisseurs(p, k, c){
 }
 function lignePend(p, x){
   const kA = ck("ATT", p.id), v = S.counts[kA]?.s?.["p" + x[0]], u = UN[p.b], j = jours(x[5]), vieux = j > 30;
-  return `<div class="row ${vieux ? "vieux" : ""}"><label>${esc(x[2])} · ${fmt(x[4])} ${u}<em>commandé le ${dmy(x[6])} · prévu le ${dmy(x[5])}${j > 0 ? ` · ${j} j de retard` : ""}${vieux ? " · ancienne commande ?" : ""}</em></label>
+  return `<div class="row ${vieux ? "vieux" : ""}"><label>${esc(x[2])} · ${fmt(x[4])} ${u}<em>commandé le ${dmy(x[6])} · prévu le ${dmy(x[5])}${j > 0 ? ` · ${j} j de retard` : ""}</em></label>
     ${champNb(kA, `data-s="p${x[0]}"`, v, "any", "decimal", "Reçu de " + x[2] + " en " + u)}</div>`;
 }
 function fournisseursZone(L){ const m = {}; L.forEach(p => m[gnom(p)] = (m[gnom(p)] || 0) + 1); return Object.entries(m).sort((a, b) => ordreF(a[0]).localeCompare(ordreF(b[0]), "fr")); }
