@@ -43,7 +43,22 @@ async function hh(env, chemin, { method = "GET", headers = {}, body } = {}) {
   return r;
 }
 const hhJson = async (env, chemin, opt = {}) => { const r = await hh(env, chemin, { ...opt, headers: { ...XHR, ...(opt.headers || {}) } });
-  if (!r.ok) throw new Error(`${chemin} → ${r.status}`); return r.json(); };
+  const t = await r.text(); if (!r.ok) throw new Error(`${chemin} → ${r.status}`);
+  try { return JSON.parse(t); } catch { throw new Error(`${chemin} : réponse non JSON (${r.status}) ${t.replace(/\s+/g, " ").slice(0, 160)}`); } };
+
+
+/* La page d'un inventaire embarque ses lignes en clair : « tableData: {"data":[…]} ». */
+function extraireTable(html) {
+  const i = html.indexOf("tableData:"); if (i < 0) return null;
+  const d = html.indexOf("{", i); if (d < 0) return null;
+  let prof = 0, chaine = false, esc = false;
+  for (let k = d; k < html.length; k++) {
+    const c = html[k];
+    if (chaine) { if (esc) esc = false; else if (c === "\\") esc = true; else if (c === '"') chaine = false; continue; }
+    if (c === '"') chaine = true; else if (c === "{") prof++; else if (c === "}" && --prof === 0) { try { return JSON.parse(html.slice(d, k + 1)); } catch { return null; } }
+  }
+  return null;
+}
 
 const nomFour = s => String(s || "").replace(/^\s*[\w-]*\d[\w-]*\s+-\s+/, "").trim().toLowerCase();   // « 0007 - Patisfrais » → « patisfrais »
 const dateIso = d => d?.date ? d.date.slice(0, 10) : "";
@@ -95,10 +110,15 @@ export default {
       bilan.inventaire = id; bilan.url = `${BASE}/stock/inventory/${id}`;
       try {
         await hh(env, `/stock/inventory/${id}/start`);
-        const page = await (await hh(env, `/stock/inventory/${id}`)).text();
+        let page = "", tab = null;
+        for (let essai = 0; essai < 20 && !tab; essai++) {   // HH génère les lignes : la page reste « démarrage » quelques secondes
+          if (essai) await new Promise(r => setTimeout(r, 1500));
+          page = await (await hh(env, `/stock/inventory/${id}`)).text(); tab = extraireTable(page);
+        }
         const verrou = page.match(/ENV_LOCK_IDENTIFIER = '([^']+)'/)?.[1];
         if (!verrou) throw new Error("verrou introuvable");
-        const lignes = (await hhJson(env, `/stock/inventory/${id}.json`)).data;
+        if (!tab) throw new Error(`page inventaire sans tableau (${page.length} octets) : ` + page.replace(/\s+/g, " ").slice(0, 300));
+        const lignes = tab.data;
 
         // 2. répartition : le comptage d'un fournisseur va sur son stock le plus récent, ses autres stocks à 0
         const items = [], ignores = []; let modifiees = 0;
@@ -141,7 +161,11 @@ export default {
         await hh(env, `/base/lock?${q}`, { method: "POST", headers: { "X-Requested-With": "XMLHttpRequest" } }).catch(() => {});
         if (corps.essai) { await hh(env, `/stock/inventory/${id}/cancel?confirm=1`); bilan.essai = "brouillon annulé après essai"; }
       } catch (e) {
-        await hh(env, `/stock/inventory/${id}/cancel?confirm=1`).catch(() => {});   // pas de brouillon à moitié rempli
+        for (let k = 0; k < 3; k++) {   // pas de brouillon à moitié rempli (HH peut mettre un instant à accepter l'annulation)
+          await new Promise(r => setTimeout(r, 1500)); await hh(env, `/stock/inventory/${id}/cancel?confirm=1`).catch(() => {});
+          const p = (await (await hh(env, `/stock/inventory/${id}`).catch(() => null))?.text?.() || "").replace(/\\\//g, "/");
+          if (!new RegExp(`/stock/inventory/${id}/cancel`).test(p)) break;
+        }
         throw e;
       }
       return rep(req, { ok: true, ...bilan });
