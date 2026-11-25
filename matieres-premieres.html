@@ -122,7 +122,7 @@ const gnom = p => { const f = fo(p)[0]; return f ? (NB[f] >= 2 ? f : AUTRES) : I
 const couleur = s => { if (s === AUTRES || s === INCONNU) return "#78837c"; let h = 0; for (const c of s) h = (h * 31 + c.charCodeAt(0)) % 360; return `hsl(${h} 55% 36%)`; };
 const ordreF = s => s === AUTRES ? "~1" : s === INCONNU ? "~2" : s;
 
-let S = {date: today(), who: "", counts: {}, extra: {}, pending: {}, fx: {}, fxPending: {}, fo: {}, foPending: {}, rm: {}, rmPending: {}, ns: {}, nsPending: {}, xf: {}, xfPending: {}};
+let S = {date: today(), who: "", counts: {}, extra: {}, pending: {}, fx: {}, fxPending: {}, fo: {}, foPending: {}, rm: {}, rmPending: {}, ns: {}, nsPending: {}, xf: {}, xfPending: {}, allF: 0};
 try { const x = JSON.parse(localStorage.getItem(KEY) || "null"); if (x) { S = {...S, ...x}; S.date = today(); } } catch (e) {}
 try { const op = localStorage.getItem("op:" + S.date); if (op) S.who = op; } catch (e) {}   // même prénom que l'app consommables
 if (window.self !== window.top) document.getElementById("lien-conso").hidden = true;   // dans la page à onglets, le lien est inutile
@@ -231,7 +231,7 @@ const PENDL = id => [...((typeof PEND !== "undefined" && PEND[id]) || []), ...Ob
 const jours = d => Math.floor((Date.now() - Date.parse(d)) / 864e5);
 const dmy = d => d ? d.split("-").reverse().join("/") : "—";
 function blocFournisseurs(p, k, c){
-  const G = groupesStock(p), tous = tousF.has(p.id), u = UN[p.b], cs = c.s || {};
+  const G = groupesStock(p), tous = tousF.has(p.id) || !!S.allF, u = UN[p.b], cs = c.s || {};
   const ajoutes = S.xf?.[p.id] || [], horsStock = n => !G.some(g => g.nom.toLowerCase() === n.toLowerCase());
   const sans = (tous ? fournisseursOrdre(p) : ajoutes).filter(horsStock);
   const ligneF = (nom, att) => `<div class="row"><label><b>${esc(nom)}</b><em>${att}</em></label>${champNb(k, `data-s="f${esc(nom)}"`, cs["f" + nom], "any", "decimal", "Stock " + nom + " en " + u)}</div>`;
@@ -288,7 +288,7 @@ function vueZone(){
     <label>Fournisseur <select id="sel-fo"><option value="">Tous (${fz.length})</option>${opts(fz.map(([f, n]) => [f, `${f} · ${n}`]), fourn)}</select></label>
     <label>Trier <select id="sel-tri">${opts(TRIS, tri)}</select></label>
   </div>
-  <div class="bar"><button class="btn ghost" id="ajout">${ajout ? "Fermer l'ajout" : "+ Produit d'une autre zone"}</button>
+  <div class="bar"><button class="btn ghost" id="allf">${S.allF ? "✓ Tous les fournisseurs affichés" : "Afficher tous les fournisseurs"}</button><button class="btn ghost" id="ajout">${ajout ? "Fermer l'ajout" : "+ Produit d'une autre zone"}</button>
     ${ajout ? `<label class="sels">Venant de <select id="sel-or"><option value="">Toutes les zones</option>${opts(ZONES.filter(z => z.c !== zone).map(z => [z.c, z.n]), origine)}</select></label>` : ""}</div>
   ${ajoutL.length ? `<div class="card"><b>Ajouter à cette zone</b>${ajoutL.map(p => `<div class="row"><label>${esc(p.n)}<em>${esc(p.c)} · ${esc(fo(p).join(", "))} · zone habituelle : ${p.z.join("/")}</em></label><button class="btn" data-add="${p.id}">Ajouter</button></div>`).join("")}</div>` : ""}
   ${corps || `<p class="sub">${b || nsL.length ? "Rien à afficher avec ce filtre." : "Aucun produit pour l'instant : utilisez « + Produit d'une autre zone »."}</p>`}
@@ -380,6 +380,7 @@ document.addEventListener("input", e => {
 document.addEventListener("click", e => {
   const b = e.target.closest("button,a"); if (!b) return;
   if (b.dataset.z){ zone = b.dataset.z; view = "zone"; filtre = "tous"; q = ""; ajout = false; rendre(); scrollTo(0, 0); }
+  else if (b.id === "allf"){ S.allF = S.allF ? 0 : 1; save(); rendre(); }
   else if (b.id === "back"){ view = "home"; rendre(); }
   else if (b.dataset.att){ view = "att"; rendre(); scrollTo(0, 0); }
   else if (b.id === "t-inv"){ tab = "inv"; rendre(); } else if (b.id === "t-bil"){ tab = "bil"; rendre(); }
