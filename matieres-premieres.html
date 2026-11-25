@@ -150,7 +150,9 @@ function groupesStock(p){
 }
 function fournisseursOrdre(p){
   const avec = groupesStock(p).map(g => g.nom), b = p.fo || [], bas = a => String(a).toLowerCase();
-  const ajoutes = (S.xf?.[p.id] || []), tout = [...avec, ...b.filter(x => !avec.some(a => bas(a) === bas(x)))];
+  const C0 = typeof CAT !== "undefined" ? CAT : {}, ids = [p.id, ...Object.entries(LIENS).filter(([q, t]) => t === p.id).map(([q]) => Number(q))];
+  const cata = ids.flatMap(i => C0[i] || []), ajoutes = (S.xf?.[p.id] || []);
+  const tout = []; for (const n of [...avec, ...cata, ...b]) if (!tout.some(a => bas(a) === bas(n))) tout.push(n);
   return [...tout, ...ajoutes.filter(x => !tout.some(a => bas(a) === bas(x)))];
 }
 const stockHH = p => { const L = ITEMS(p.id); return L.length ? L.reduce((t, x) => t + x[5], 0) : p.st; };
@@ -205,8 +207,8 @@ function ligne(z, p){
   const lot = p.lot ? `<button data-lot="${k}">${c.lot || c.dlc ? "Lot / DLC : " + esc(c.lot || "—") + " · " + esc(c.dlc || "—") : "+ lot / DLC"}</button>` : "";
   const [sc, sl] = statutP(p, c);
   return `<div class="p ${ok ? "done" : ""} st-${sc}" data-pid="${p.id}"><div class="p-h"><div style="display:flex;gap:10px;align-items:flex-start">${Photos.miniature("mp:" + p.id)}<div><span class="chipf" style="background:${couleur(gnom(p))}">${esc(fo(p)[0] || INCONNU)}</span><div class="p-n">${esc(p.n)}</div>
-    <div class="p-c">${esc(p.c)}${fo(p).length > 1 ? " · aussi " + esc(fo(p).slice(1).join(", ")) : ""}${p.conf === "basse" ? " · zone à confirmer" : ""}${p.anc ? " · ANCIENNE FICHE HH" : ""}${p.z.length > 1 ? " · aussi " + p.z.filter(x => x !== z).join("/") : ""}</div>
-    ${stockHH(p) ? `<div class="hh">Stock HH : ${fmt(stockHH(p))} ${UN[p.b]}</div>` : ""}</div></div>
+    <div class="p-c">${esc(p.c)}${p.conf === "basse" ? " · zone à confirmer" : ""}${p.anc ? " · ANCIENNE FICHE HH" : ""}</div>
+    <div class="hh">${stockHH(p) ? "Stock HH : " + fmt(stockHH(p)) + " " + UN[p.b] : "<b>Pas de stock</b> dans HH"}</div></div></div>
     <div class="p-tot ${ok && !t ? "zero" : ""}" id="tot-${p.id}">${ok ? fmt(t) + " " + UN[p.b] : "—"}</div></div>
     <div style="margin:0 0 6px"><span class="stb ${sc}" id="stb-${p.id}" style="margin-left:0">${sl}</span></div>
     ${rows}
@@ -239,15 +241,15 @@ const PENDL = id => [...((typeof PEND !== "undefined" && PEND[id]) || []), ...Ob
 const jours = d => Math.floor((Date.now() - Date.parse(d)) / 864e5);
 const dmy = d => d ? d.split("-").reverse().join("/") : "—";
 function blocFournisseurs(p, k, c){
-  const G = groupesStock(p), tous = tousF.has(p.id) || !!S.allF, u = UN[p.b], cs = c.s || {};
+  const G = groupesStock(p), tous = true, u = UN[p.b], cs = c.s || {};
   const ajoutes = S.xf?.[p.id] || [], horsStock = n => !G.some(g => g.nom.toLowerCase() === n.toLowerCase());
   const sans = (tous ? fournisseursOrdre(p) : ajoutes).filter(horsStock);
   const ligneF = (nom, att) => `<div class="row"><label><b>${esc(nom)}</b><em>${att}</em></label>${champNb(k, `data-s="f${esc(nom)}"`, cs["f" + nom], "any", "decimal", "Stock " + nom + " en " + u)}</div>`;
   const att = PENDL(p.id), kA = ck("ATT", p.id), cA = S.counts[kA] || {}, recu = Object.values(cA.s || {}).reduce((a, v) => a + (Number(v) || 0), 0);
   return `<div class="fours"><div class="ft">Stock par fournisseur</div>
     ${G.map(g => ligneF(g.nom, `HH : <b>${fmt(g.tot)} ${u}</b> · dernier arrivage ${dmy(g.rec)}`)).join("") || '<p class="sub" style="margin:4px 0">Plus aucun stock dans Hello Harel.</p>'}
-    ${sans.map(n => { const d = dernierArr(p, n); return ligneF(n, `HH : <b>0 ${u}</b> · ${d ? "dernier arrivage " + dmy(d) : "aucun arrivage dans HH"}`); }).join("")}
-    <div class="mini">${(p.fo || []).length > G.length || !G.length ? `<button data-allf="${p.id}">${tous ? "Masquer les autres fournisseurs" : "Tous les fournisseurs"}</button>` : ""}<button data-addf="${p.id}">+ Fournisseur</button></div>
+    ${sans.map(n => { const d = dernierArr(p, n); return ligneF(n, `<b>Pas de stock</b> · ${d ? "dernier arrivage " + dmy(d) : "jamais livré dans HH"}`); }).join("")}
+    <div class="mini"><button data-addf="${p.id}">+ Fournisseur</button></div>
     ${att.length ? `<div class="ft" style="margin-top:10px">Commandé, pas encore rentré dans HH${recu ? ` · ${fmt(recu)} ${u} reçus à rentrer` : ""}</div>${att.map(x => lignePend(p, x)).join("")}` : ""}</div>`;
 }
 function lignePend(p, x){
@@ -296,7 +298,7 @@ function vueZone(){
     <label>Fournisseur <select id="sel-fo"><option value="">Tous (${fz.length})</option>${opts(fz.map(([f, n]) => [f, `${f} · ${n}`]), fourn)}</select></label>
     <label>Trier <select id="sel-tri">${opts(TRIS, tri)}</select></label>
   </div>
-  <div class="bar"><button class="btn ghost" id="allf">${S.allF ? "✓ Tous les fournisseurs affichés" : "Afficher tous les fournisseurs"}</button><button class="btn ghost" id="ajout">${ajout ? "Fermer l'ajout" : "+ Produit d'une autre zone"}</button>
+  <div class="bar"><button class="btn ghost" id="ajout">${ajout ? "Fermer l'ajout" : "+ Produit d'une autre zone"}</button>
     ${ajout ? `<label class="sels">Venant de <select id="sel-or"><option value="">Toutes les zones</option>${opts(ZONES.filter(z => z.c !== zone).map(z => [z.c, z.n]), origine)}</select></label>` : ""}</div>
   ${ajoutL.length ? `<div class="card"><b>Ajouter à cette zone</b>${ajoutL.map(p => `<div class="row"><label>${esc(p.n)}<em>${esc(p.c)} · ${esc(fo(p).join(", "))} · zone habituelle : ${p.z.join("/")}</em></label><button class="btn" data-add="${p.id}">Ajouter</button></div>`).join("")}</div>` : ""}
   ${corps || `<p class="sub">${b || nsL.length ? "Rien à afficher avec ce filtre." : "Aucun produit pour l'instant : utilisez « + Produit d'une autre zone »."}</p>`}
