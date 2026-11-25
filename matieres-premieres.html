@@ -121,7 +121,7 @@ const gnom = p => { const f = fo(p)[0]; return f ? (NB[f] >= 2 ? f : AUTRES) : I
 const couleur = s => { if (s === AUTRES || s === INCONNU) return "#78837c"; let h = 0; for (const c of s) h = (h * 31 + c.charCodeAt(0)) % 360; return `hsl(${h} 55% 36%)`; };
 const ordreF = s => s === AUTRES ? "~1" : s === INCONNU ? "~2" : s;
 
-let S = {date: today(), who: "", counts: {}, extra: {}, pending: {}, fx: {}, fxPending: {}, fo: {}, foPending: {}};
+let S = {date: today(), who: "", counts: {}, extra: {}, pending: {}, fx: {}, fxPending: {}, fo: {}, foPending: {}, rm: {}, rmPending: {}};
 try { const x = JSON.parse(localStorage.getItem(KEY) || "null"); if (x) { S = {...S, ...x}; S.date = today(); } } catch (e) {}
 try { const op = localStorage.getItem("op:" + S.date); if (op) S.who = op; } catch (e) {}   // même prénom que l'app consommables
 if (window.self !== window.top) document.getElementById("lien-conso").hidden = true;   // dans la page à onglets, le lien est inutile
@@ -206,7 +206,7 @@ function ligne(z, p){
     ${blocFournisseurs(p, k, c)}
     <div class="row"><label>${F.length ? "En vrac / ouvert" : "Quantité"} (${UN[p.b]})</label>
     ${champNb(k, 'data-v="1"', c.vrac, "any", "decimal", "Quantité en " + UN[p.b])}</div>
-    <div class="mini"><button data-zero="${k}">${c.zero ? "✓ Rien en stock" : "Rien en stock"}</button>${lot}<button data-fx="${p.id}">✎ Conditionnements</button><button data-fo="${p.id}">⇄ Fournisseur</button><button data-photo="${p.id}">📷 ${Photos.has("mp:" + p.id) ? "Changer la photo" : "Photo"}</button></div></div>`;
+    <div class="mini"><button data-zero="${k}">${c.zero ? "✓ Rien en stock" : "Rien en stock"}</button>${lot}<button data-fx="${p.id}">✎ Conditionnements</button><button data-fo="${p.id}">⇄ Fournisseur</button><button data-rm="${p.id}">${(S.rm[p.id] || []).length ? "⚠ À retirer dans HH (" + S.rm[p.id].length + ")" : "⚠ Conditionnement à retirer"}</button><button data-photo="${p.id}">📷 ${Photos.has("mp:" + p.id) ? "Changer la photo" : "Photo"}</button></div></div>`;
 }
 const jjmm = d => d ? d.slice(8, 10) + "/" + d.slice(5, 7) : "—";
 /* rouge : rien saisi · orange : saisie partielle ou commande en attente · vert : tous les stocks fournisseurs validés */
@@ -291,6 +291,24 @@ function ouvrirFx(id){
       S.fx[id] = L.map(({q, n, f, l}) => ({q, n, f, l})); S.fxPending[id] = 1; save(); dlg.close(); envoyerFx(); vider(); rendre(); } };
 }
 
+/* conditionnement pas stocké / pas bon : à retirer de la fiche produit dans HH au moment de valider l'inventaire */
+function ouvrirRm(id){
+  const p = PID[id], dlg = $("#dlg"); let L = (S.rm[id] || []).map(x => ({...x}));
+  const noms = [...new Set([...formats(p).map(f => f.n + " de " + fmt(f.q) + " " + UN[p.b]), p.pk].filter(Boolean))];
+  const draw = () => { dlg.innerHTML = `<h2 style="margin:0 0 6px">${esc(p.n)}</h2><p class="sub">Conditionnement qui n'est pas stocké ou pas bon : il sera listé « à retirer de la fiche produit dans Hello Harel » à la validation de l'inventaire.</p>
+    ${L.map((x, i) => `<div class="row"><label><b>${esc(x.n)}</b><em>${esc(x.m)}${x.t ? " · " + esc(x.t) : ""}</em></label><button class="stp" data-del="${i}" aria-label="Retirer de la liste">🗑</button></div>`).join("") || '<p class="sub">Aucun conditionnement signalé.</p>'}
+    <div class="bar sels"><label>Conditionnement<select id="rm-n">${noms.map(n => `<option>${esc(n)}</option>`).join("")}<option value="">Autre (préciser)…</option></select></label>
+    <label>Problème<select id="rm-m"><option>Pas stocké</option><option>Pas bon</option></select></label></div>
+    <div class="bar sels"><label>Précision<input type="text" id="rm-t" placeholder="ex. colis de 12, acheté en seau de 5 kg"></label></div>
+    <div class="bar"><button class="btn" id="rm-add">Signaler</button><button class="btn ghost" id="rm-ok">Enregistrer</button><button class="btn ghost" id="rm-no">Annuler</button></div>`; };
+  draw(); dlg.showModal();
+  dlg.onclick = e => { const b = e.target.closest("button"); if (!b) return;
+    if (b.dataset.del !== undefined){ L.splice(Number(b.dataset.del), 1); draw(); }
+    else if (b.id === "rm-add"){ const n = $("#rm-n").value || $("#rm-t").value.trim(); if (!n) return toast("Précisez le conditionnement");
+      L.push({n, m: $("#rm-m").value, t: $("#rm-t").value.trim(), par: S.who, d: S.date}); draw(); }
+    else if (b.id === "rm-no") dlg.close();
+    else if (b.id === "rm-ok"){ if (L.length) S.rm[id] = L; else delete S.rm[id]; S.rmPending[id] = 1; save(); dlg.close(); envoyerRm(); rendre(); } };
+}
 function ouvrirFo(id){
   const p = PID[id], dlg = $("#dlg"), cur = fo(p)[0] || "", autres = [...new Set(DATA.flatMap(x => x.fo || []))].sort((a, b) => a.localeCompare(b, "fr"));
   dlg.innerHTML = `<h2 style="margin:0 0 6px">${esc(p.n)}</h2><p class="sub">Fournisseur dont vient le stock compté. Choisissez-en un déjà connu pour ce produit, un autre fournisseur, ou saisissez un nom.</p>
@@ -330,6 +348,7 @@ document.addEventListener("click", e => {
   else if (b.dataset.st){ const i = b.parentElement.querySelector("input"); const pas = i.dataset.v || i.dataset.s ? 0.5 : 1; i.value = Math.max(0, Math.round(((Number(i.value) || 0) + pas * Number(b.dataset.st)) * 1000) / 1000) || ""; i.dispatchEvent(new Event("input", {bubbles: true})); }
   else if (b.dataset.fx){ ouvrirFx(Number(b.dataset.fx)); }
   else if (b.dataset.allf){ const id = Number(b.dataset.allf); tousF.has(id) ? tousF.delete(id) : tousF.add(id); rendre(); }
+  else if (b.dataset.rm){ ouvrirRm(Number(b.dataset.rm)); }
   else if (b.dataset.fo){ ouvrirFo(Number(b.dataset.fo)); }
   else if (b.dataset.photo){ const p = PID[b.dataset.photo]; Photos.choisir("mp:" + p.id, p.n, S.who); }
   else if (b.id === "ajout"){ ajout = !ajout; rendre(); }
@@ -376,7 +395,8 @@ function bilan(){
   ZONES.forEach(z => nz[z.c] = avancement(z.c));
   $("#main").innerHTML = `<h1>Bilan du ${S.date.split("-").reverse().join("/")}</h1>
   <div class="card"><table><tr><th>Zone</th><th class="n">Comptés</th><th class="n">Prévus</th></tr>${ZONES.map(z => `<tr><td>${esc(z.n)}</td><td class="n">${nz[z.c][0]}</td><td class="n">${nz[z.c][1]}</td></tr>`).join("")}</table></div>
-  <div class="card"><div class="bar"><button class="btn" id="csv">Télécharger le CSV d'import Hello Harel</button><button class="btn ghost" id="csv2">Détail par zone (CSV)</button><button class="btn ghost" id="csv3">Arrivages reçus à rentrer (CSV)</button></div>
+  ${Object.keys(S.rm).length ? `<div class="card"><b>À retirer de la fiche produit dans Hello Harel (${Object.values(S.rm).reduce((n, l) => n + l.length, 0)})</b>${Object.entries(S.rm).map(([id, l]) => l.map(x => `<div class="row"><label>${esc(PID[id]?.n)}<em>${esc(x.n)} · ${esc(x.m)}${x.t ? " · " + esc(x.t) : ""}</em></label></div>`).join("")).join("")}</div>` : ""}
+  <div class="card"><div class="bar"><button class="btn" id="csv">Télécharger le CSV d'import Hello Harel</button><button class="btn ghost" id="csv2">Détail par zone (CSV)</button><button class="btn ghost" id="csv4">Conditionnements à retirer dans HH (CSV)</button><button class="btn ghost" id="csv3">Arrivages reçus à rentrer (CSV)</button></div>
   <p class="sub">Dans Hello Harel : Stock › Inventaires › créer l'inventaire, « Importer », choisir ce fichier. Les produits présents dans deux zones sont additionnés.</p></div>
   <div class="bar sels"><label>Zone<select id="sel-bz"><option value="">Toutes les zones</option>${opts(ZONES.map(z => [z.c, z.n]), bz)}</select></label></div>
   <div class="card"><table><tr><th>Produit</th><th class="n">Total</th><th>Par zone</th></tr>${L.map(r => `<tr><td>${esc(r.p.n)}</td><td class="n">${fmt(r.t)} ${UN[r.p.b]}</td><td>${Object.entries(r.zones).map(([z, t]) => `${z} ${fmt(t)}`).join(" · ")}</td></tr>`).join("") || `<tr><td colspan="3">Rien de compté à cette date.</td></tr>`}</table></div>`;
@@ -396,6 +416,10 @@ document.addEventListener("click", e => {
       lots.forEach(l => out.push([r.p.c + " - " + r.p.n, r.p.pk, r.p.loc, "", "", "", l[2], l[2], l[0], l[1], "", ""]));
       if (reste > 1e-9 || (!lots.length && !r.items.length)) out.push([r.p.c + " - " + r.p.n, r.p.pk, r.p.loc, "", "", "", reste, reste, "", "", "", ""]); });
     telecharger("inventaire-MP-HH-" + S.date + ".csv", [ent, ...out]);
+  } else if (e.target.id === "csv4"){
+    const out = [["Code HH","Produit","Conditionnement","Problème","Précision","Signalé par","Date"]];
+    for (const id in S.rm) for (const x of S.rm[id]) out.push([PID[id]?.c, PID[id]?.n, x.n, x.m, x.t || "", x.par || "", x.d || ""]);
+    telecharger("conditionnements-a-retirer-HH-" + S.date + ".csv", out);
   } else if (e.target.id === "csv3"){
     const out = [["Date","Code","Produit","Fournisseur","Commande HH","Unité","Quantité commandée","Commandée le","Prévue le","Quantité reçue","Compté par"]];
     for (const k in S.counts){ const x = cle(k); if (x.d !== S.date || x.z !== "ATT" || !x.p) continue; const c = S.counts[k];
@@ -424,6 +448,13 @@ async function envoyerFx(){
       delete S.fxPending[id]; save(); } catch (e) { return dot("err", "hors ligne — conservé sur ce téléphone"); }
   }
 }
+async function envoyerRm(){
+  if (!SYNC.url) return;
+  for (const id of Object.keys(S.rmPending)){
+    try { await appel("ecrire", {cle: "RM|" + id, date: "RM", zone: "RM", produit_id: Number(id), produit: PID[id]?.n, code: PID[id]?.c, formats: JSON.stringify({rm: S.rm[id] || []}), vrac: 0, total: 0, unite: "", lot: "", dlc: "", compte_par: S.who, maj: new Date().toISOString()});
+      delete S.rmPending[id]; save(); } catch (e) { return dot("err", "hors ligne — conservé sur ce téléphone"); }
+  }
+}
 async function envoyerFo(){
   if (!SYNC.url) return;
   for (const id of Object.keys(S.foPending)){
@@ -434,7 +465,7 @@ async function envoyerFo(){
 function envoyer(k){ if (!SYNC.url) return dot("", "local"); S.pending[k] = 1; save(); dot("wait", "à envoyer…"); clearTimeout(envoyer.t); envoyer.t = setTimeout(vider, 2500); }
 async function vider(){
   if (!SYNC.url || navigator.onLine === false) return;
-  await envoyerFx(); await envoyerFo();
+  await envoyerFx(); await envoyerFo(); await envoyerRm();
   for (const k of Object.keys(S.pending)){
     const x = cle(k), c = S.counts[k] || {f: {}, vrac: 0, zero: false};
     try {
@@ -450,6 +481,7 @@ async function pull(){
   try {
     const r = await appel("lire", {date: S.date}); let n = 0;
     for (const row of r.rows || []){
+      if (row.cle.startsWith("RM|")){ const id = Number(row.cle.slice(3)); if (!S.rmPending[id] && PID[id]){ try { const v = JSON.parse(row.formats || "{}").rm || []; if (v.length) S.rm[id] = v; else delete S.rm[id]; n++; } catch (e) {} } continue; }
       if (row.cle.startsWith("FO|")){ const id = Number(row.cle.slice(3)); if (!S.foPending[id] && PID[id]){ try { const v = JSON.parse(row.formats || "{}").fo; if (v) S.fo[id] = v; else delete S.fo[id]; n++; } catch (e) {} } continue; }
       if (row.cle.startsWith("FX|")){ const id = Number(row.cle.slice(3)); if (!S.fxPending[id] && PID[id]){ try { S.fx[id] = JSON.parse(row.formats || "[]"); n++; } catch (e) {} } continue; }
       const loc = S.counts[row.cle]; if (S.pending[row.cle] || (loc && (loc.t || 0) >= Date.parse(row.maj || 0))) continue;
