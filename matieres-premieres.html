@@ -122,7 +122,7 @@ const gnom = p => { const f = fo(p)[0]; return f ? (NB[f] >= 2 ? f : AUTRES) : I
 const couleur = s => { if (s === AUTRES || s === INCONNU) return "#78837c"; let h = 0; for (const c of s) h = (h * 31 + c.charCodeAt(0)) % 360; return `hsl(${h} 55% 36%)`; };
 const ordreF = s => s === AUTRES ? "~1" : s === INCONNU ? "~2" : s;
 
-let S = {date: today(), who: "", counts: {}, extra: {}, pending: {}, fx: {}, fxPending: {}, fo: {}, foPending: {}, rm: {}, rmPending: {}, ns: {}, nsPending: {}};
+let S = {date: today(), who: "", counts: {}, extra: {}, pending: {}, fx: {}, fxPending: {}, fo: {}, foPending: {}, rm: {}, rmPending: {}, ns: {}, nsPending: {}, xf: {}, xfPending: {}};
 try { const x = JSON.parse(localStorage.getItem(KEY) || "null"); if (x) { S = {...S, ...x}; S.date = today(); } } catch (e) {}
 try { const op = localStorage.getItem("op:" + S.date); if (op) S.who = op; } catch (e) {}   // même prénom que l'app consommables
 if (window.self !== window.top) document.getElementById("lien-conso").hidden = true;   // dans la page à onglets, le lien est inutile
@@ -145,7 +145,8 @@ function groupesStock(p){
 }
 function fournisseursOrdre(p){
   const avec = groupesStock(p).map(g => g.nom), b = p.fo || [], bas = a => String(a).toLowerCase();
-  return [...avec, ...b.filter(x => !avec.some(a => bas(a) === bas(x)))];
+  const ajoutes = (S.xf?.[p.id] || []), tout = [...avec, ...b.filter(x => !avec.some(a => bas(a) === bas(x)))];
+  return [...tout, ...ajoutes.filter(x => !tout.some(a => bas(a) === bas(x)))];
 }
 const stockHH = p => { const L = ITEMS(p.id); return L.length ? L.reduce((t, x) => t + x[5], 0) : p.st; };
 const tousF = new Set();   // produits dont on affiche tous les fournisseurs (pas seulement ceux qui ont du stock)
@@ -228,14 +229,14 @@ const jours = d => Math.floor((Date.now() - Date.parse(d)) / 864e5);
 const dmy = d => d ? d.split("-").reverse().join("/") : "—";
 function blocFournisseurs(p, k, c){
   const G = groupesStock(p), tous = tousF.has(p.id), u = UN[p.b], cs = c.s || {};
-  const sans = tous ? fournisseursOrdre(p).filter(n => !G.some(g => g.nom.toLowerCase() === n.toLowerCase())) : [];
-  if (!G.length && !(p.fo || []).length && !PENDL(p.id).length) return "";
+  const ajoutes = S.xf?.[p.id] || [], horsStock = n => !G.some(g => g.nom.toLowerCase() === n.toLowerCase());
+  const sans = (tous ? fournisseursOrdre(p) : ajoutes).filter(horsStock);
   const ligneF = (nom, att) => `<div class="row"><label><b>${esc(nom)}</b><em>${att}</em></label>${champNb(k, `data-s="f${esc(nom)}"`, cs["f" + nom], "any", "decimal", "Stock " + nom + " en " + u)}</div>`;
   const att = PENDL(p.id), kA = ck("ATT", p.id), cA = S.counts[kA] || {}, recu = Object.values(cA.s || {}).reduce((a, v) => a + (Number(v) || 0), 0);
   return `<div class="fours"><div class="ft">Stock par fournisseur</div>
     ${G.map(g => ligneF(g.nom, `HH : ${fmt(g.tot)} ${u} · dernier arrivage ${jjmm(g.rec)}`)).join("") || '<p class="sub" style="margin:4px 0">Plus aucun stock dans Hello Harel.</p>'}
     ${sans.map(n => ligneF(n, "plus de stock dans HH")).join("")}
-    ${(p.fo || []).length > G.length || !G.length ? `<div class="mini"><button data-allf="${p.id}">${tous ? "Masquer les autres fournisseurs" : "Tous les fournisseurs"}</button></div>` : ""}
+    <div class="mini">${(p.fo || []).length > G.length || !G.length ? `<button data-allf="${p.id}">${tous ? "Masquer les autres fournisseurs" : "Tous les fournisseurs"}</button>` : ""}<button data-addf="${p.id}">+ Fournisseur</button></div>
     ${att.length ? `<div class="ft" style="margin-top:10px">Commandé, pas encore rentré dans HH${recu ? ` · ${fmt(recu)} ${u} reçus à rentrer` : ""}</div>${att.map(x => lignePend(p, x)).join("")}` : ""}</div>`;
 }
 function lignePend(p, x){
@@ -328,6 +329,21 @@ function ouvrirRm(id){
     else if (b.id === "rm-no") dlg.close();
     else if (b.id === "rm-ok"){ if (L.length) S.rm[id] = L; else delete S.rm[id]; S.rmPending[id] = 1; save(); dlg.close(); envoyerRm(); rendre(); } };
 }
+function ouvrirXf(id){
+  const p = PID[id], dlg = $("#dlg"), deja = new Set(fournisseursOrdre(p).map(x => x.toLowerCase()));
+  const tous = [...new Set([...DATA.flatMap(x => x.fo || []), ...Object.values(typeof STK !== "undefined" ? STK : {}).flat().map(x => x[2])])].sort((a, b) => a.localeCompare(b, "fr")).filter(x => !deja.has(x.toLowerCase()));
+  dlg.innerHTML = `<h2 style="margin:0 0 6px">${esc(p.n)}</h2><p class="sub">Ajouter un fournisseur à ce produit : il apparaît avec sa propre ligne de stock. Choisissez dans la liste ou tapez un nom.</p>
+    <div class="bar sels"><label>Fournisseur<input type="text" id="xf-t" list="xf-l" placeholder="Nom du fournisseur" autocomplete="off"><datalist id="xf-l">${tous.map(x => `<option value="${esc(x)}">`).join("")}</datalist></label></div>
+    ${(S.xf[id] || []).length ? `<p class="sub">Déjà ajoutés : ${(S.xf[id]).map(esc).join(", ")}. <button class="btn ghost" id="xf-rm">Retirer le dernier</button></p>` : ""}
+    <div class="bar"><button class="btn" id="xf-ok">Ajouter</button><button class="btn ghost" id="xf-no">Annuler</button></div>`;
+  dlg.showModal();
+  dlg.onclick = e => { const b = e.target.closest("button"); if (!b) return;
+    if (b.id === "xf-no") dlg.close();
+    else if (b.id === "xf-rm"){ S.xf[id].pop(); if (!S.xf[id].length) delete S.xf[id]; S.xfPending[id] = 1; save(); dlg.close(); envoyerXf(); rendre(); }
+    else if (b.id === "xf-ok"){ const v = $("#xf-t").value.trim(); if (!v) return toast("Indiquez un fournisseur");
+      if (deja.has(v.toLowerCase())) return toast("Ce fournisseur est déjà sur le produit");
+      (S.xf[id] = S.xf[id] || []).push(v); S.xfPending[id] = 1; save(); tousF.delete(id); dlg.close(); envoyerXf(); rendre(); } };
+}
 function ouvrirFo(id){
   const p = PID[id], dlg = $("#dlg"), cur = fo(p)[0] || "", autres = [...new Set(DATA.flatMap(x => x.fo || []))].sort((a, b) => a.localeCompare(b, "fr"));
   dlg.innerHTML = `<h2 style="margin:0 0 6px">${esc(p.n)}</h2><p class="sub">Fournisseur dont vient le stock compté. Choisissez-en un déjà connu pour ce produit, un autre fournisseur, ou saisissez un nom.</p>
@@ -368,6 +384,7 @@ document.addEventListener("click", e => {
   else if (b.dataset.fx){ ouvrirFx(Number(b.dataset.fx)); }
   else if (b.dataset.allf){ const id = Number(b.dataset.allf); tousF.has(id) ? tousF.delete(id) : tousF.add(id); rendre(); }
   else if (b.dataset.ns){ const id = Number(b.dataset.ns); S.ns[id] = isNS(PID[id]) ? 0 : 1; S.nsPending[id] = 1; save(); envoyerNs(); toast(S.ns[id] ? "Rangé dans « Plus stockés »" : "Remis dans la liste"); rendre(); }
+  else if (b.dataset.addf){ ouvrirXf(Number(b.dataset.addf)); }
   else if (b.dataset.rm){ ouvrirRm(Number(b.dataset.rm)); }
   else if (b.dataset.fo){ ouvrirFo(Number(b.dataset.fo)); }
   else if (b.dataset.photo){ const p = PID[b.dataset.photo]; Photos.choisir("mp:" + p.id, p.n, S.who); }
@@ -482,6 +499,13 @@ async function envoyerNs(){
       delete S.nsPending[id]; save(); } catch (e) { return dot("err", "hors ligne — conservé sur ce téléphone"); }
   }
 }
+async function envoyerXf(){
+  if (!SYNC.url) return;
+  for (const id of Object.keys(S.xfPending)){
+    try { await appel("ecrire", {cle: "XF|" + id, date: "XF", zone: "XF", produit_id: Number(id), produit: PID[id]?.n, code: PID[id]?.c, formats: JSON.stringify({xf: S.xf[id] || []}), vrac: 0, total: 0, unite: "", lot: "", dlc: "", compte_par: S.who, maj: new Date().toISOString()});
+      delete S.xfPending[id]; save(); } catch (e) { return dot("err", "hors ligne — conservé sur ce téléphone"); }
+  }
+}
 async function envoyerFo(){
   if (!SYNC.url) return;
   for (const id of Object.keys(S.foPending)){
@@ -492,7 +516,7 @@ async function envoyerFo(){
 function envoyer(k){ if (!SYNC.url) return dot("", "local"); S.pending[k] = 1; save(); dot("wait", "à envoyer…"); clearTimeout(envoyer.t); envoyer.t = setTimeout(vider, 2500); }
 async function vider(){
   if (!SYNC.url || navigator.onLine === false) return;
-  await envoyerFx(); await envoyerFo(); await envoyerRm(); await envoyerNs();
+  await envoyerFx(); await envoyerFo(); await envoyerRm(); await envoyerNs(); await envoyerXf();
   for (const k of Object.keys(S.pending)){
     const x = cle(k), c = S.counts[k] || {f: {}, vrac: 0, zero: false};
     try {
@@ -508,6 +532,7 @@ async function pull(){
   try {
     const r = await appel("lire", {date: S.date}); let n = 0;
     for (const row of r.rows || []){
+      if (row.cle.startsWith("XF|")){ const id = Number(row.cle.slice(3)); if (!S.xfPending[id] && PID[id]){ try { const v = JSON.parse(row.formats || "{}").xf || []; if (v.length) S.xf[id] = v; else delete S.xf[id]; n++; } catch (e) {} } continue; }
       if (row.cle.startsWith("NS|")){ const id = Number(row.cle.slice(3)); if (!S.nsPending[id] && PID[id]){ try { S.ns[id] = JSON.parse(row.formats || "{}").ns === 1 ? 1 : 0; n++; } catch (e) {} } continue; }
       if (row.cle.startsWith("RM|")){ const id = Number(row.cle.slice(3)); if (!S.rmPending[id] && PID[id]){ try { const v = JSON.parse(row.formats || "{}").rm || []; if (v.length) S.rm[id] = v; else delete S.rm[id]; n++; } catch (e) {} } continue; }
       if (row.cle.startsWith("FO|")){ const id = Number(row.cle.slice(3)); if (!S.foPending[id] && PID[id]){ try { const v = JSON.parse(row.formats || "{}").fo; if (v) S.fo[id] = v; else delete S.fo[id]; n++; } catch (e) {} } continue; }
