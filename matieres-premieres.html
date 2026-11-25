@@ -108,6 +108,7 @@ const ZONES = [
   {c:"U16", n:"Usine 16"}
 ];
 const SYNC = {url:"https://n8n.srv994189.hstgr.cloud/webhook/inventaire-mp", token:"6479e2122ab6"};
+const HHW = {url: "https://inventaire-mp-hh.paul-5af.workers.dev", token: "bf30b62e7435b2f81745364f"};   // relais vers Hello Harel : écrit un BROUILLON, ne valide jamais
 const KEY = "mp-inv-v1";
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -122,7 +123,7 @@ const gnom = p => { const f = fo(p)[0]; return f ? (NB[f] >= 2 ? f : AUTRES) : I
 const couleur = s => { if (s === AUTRES || s === INCONNU) return "#78837c"; let h = 0; for (const c of s) h = (h * 31 + c.charCodeAt(0)) % 360; return `hsl(${h} 55% 36%)`; };
 const ordreF = s => s === AUTRES ? "~1" : s === INCONNU ? "~2" : s;
 
-let S = {date: today(), who: "", counts: {}, extra: {}, pending: {}, fx: {}, fxPending: {}, fo: {}, foPending: {}, rm: {}, rmPending: {}, ns: {}, nsPending: {}, xf: {}, xfPending: {}, allF: 0};
+let S = {date: today(), who: "", counts: {}, extra: {}, pending: {}, fx: {}, fxPending: {}, fo: {}, foPending: {}, rm: {}, rmPending: {}, ns: {}, nsPending: {}, xf: {}, xfPending: {}, allF: 0, inv: {}};
 try { const x = JSON.parse(localStorage.getItem(KEY) || "null"); if (x) { S = {...S, ...x}; S.date = today(); } } catch (e) {}
 try { const op = localStorage.getItem("op:" + S.date); if (op) S.who = op; } catch (e) {}   // même prénom que l'app consommables
 if (window.self !== window.top) document.getElementById("lien-conso").hidden = true;   // dans la page à onglets, le lien est inutile
@@ -298,6 +299,7 @@ function vueZone(){
     ${ajout ? `<label class="sels">Venant de <select id="sel-or"><option value="">Toutes les zones</option>${opts(ZONES.filter(z => z.c !== zone).map(z => [z.c, z.n]), origine)}</select></label>` : ""}</div>
   ${ajoutL.length ? `<div class="card"><b>Ajouter à cette zone</b>${ajoutL.map(p => `<div class="row"><label>${esc(p.n)}<em>${esc(p.c)} · ${esc(fo(p).join(", "))} · zone habituelle : ${p.z.join("/")}</em></label><button class="btn" data-add="${p.id}">Ajouter</button></div>`).join("")}</div>` : ""}
   ${corps || `<p class="sub">${b || nsL.length ? "Rien à afficher avec ce filtre." : "Aucun produit pour l'instant : utilisez « + Produit d'une autre zone »."}</p>`}
+  <div class="bar"><button class="btn" id="hhval">Valider cette zone dans Hello Harel (brouillon)</button></div>
   <dialog id="dlg"></dialog>`;
   const qi = $("#q"); if (avait && qi){ qi.focus(); try { qi.setSelectionRange(pos, pos); } catch (e) {} }
 }
@@ -321,6 +323,46 @@ function ouvrirFx(id){
 }
 
 /* conditionnement pas stocké / pas bon : à retirer de la fiche produit dans HH au moment de valider l'inventaire */
+/* Comptages remplis d'une zone → relais → brouillon d'inventaire HH (jamais validé). Un produit compté dans plusieurs zones est envoyé avec la somme. */
+function payloadZone(z){
+  const produits = [], avert = [];
+  for (const p of membres(z)){
+    if (!compte(S.counts[ck(z, p.id)])) continue;
+    const parPid = new Map(), defaut = fo(p)[0] || "";
+    const ajouter = (pid, f, q) => { const m = parPid.get(pid) || parPid.set(pid, new Map()).get(pid); m.set(f, (m.get(f) || 0) + q); };
+    for (const zz of ZONES){ const c = S.counts[ck(zz.c, p.id)]; if (!c || !compte(c)) continue;
+      let aff = 0;
+      for (const kk in c.s || {}){ const q = Number(c.s[kk]) || 0; if (!q) continue; aff += q;
+        const nom = kk[0] === "i" ? (IT[kk.slice(1)]?.[2] || defaut) : kk.slice(1);
+        const g = groupesStock(p).find(x => x.nom.toLowerCase() === nom.toLowerCase());
+        ajouter(g?.items[0]?.[9] || p.id, nom, q); }
+      const reste = Math.max(0, (total(c, p) || 0) - aff);
+      if (reste > 1e-9 || !aff) ajouter(p.id, defaut, c.zero ? 0 : reste);
+    }
+    for (const [pid, m] of parPid) produits.push({pid, nom: PID[pid]?.hn || PID[pid]?.n || p.n, parts: [...m].map(([f, q]) => ({f, q: Math.round(q * 1000) / 1000}))});
+    const autres = p.z.filter(x => x !== z && !compte(S.counts[ck(x, p.id)]));
+    if (autres.length) avert.push(p.n + " (aussi en " + autres.join("/") + ", pas encore compté)");
+  }
+  return {produits, avert};
+}
+async function validerZone(){
+  const {produits, avert} = payloadZone(zone), Z = ZONES.find(x => x.c === zone);
+  if (!produits.length) return toast("Rien de saisi dans cette zone");
+  if (!S.who) return toast("Indiquez d'abord qui fait l'inventaire");
+  if (!confirm(`Envoyer ${produits.length} produit(s) remplis de « ${Z.n} » dans Hello Harel, en brouillon (rien n'est validé) ?` + (avert.length ? `\n\nAttention, comptés dans une seule zone pour l'instant :\n- ${avert.slice(0, 8).join("\n- ")}` : ""))) return;
+  const btn = $("#hhval"); if (btn){ btn.disabled = true; btn.textContent = "Envoi à Hello Harel…"; }
+  const cle = S.date + "|" + zone; let r;
+  try { r = await (await fetch(HHW.url, {method: "POST", headers: {"Content-Type": "text/plain"}, body: JSON.stringify({token: HHW.token, date: S.date, zone, who: S.who, produits, precedent: S.inv[cle] || null})})).json(); }
+  catch (e) { r = {ok: false, erreur: "pas de réseau"}; }
+  if (btn){ btn.disabled = false; btn.textContent = "Valider cette zone dans Hello Harel (brouillon)"; }
+  const dlg = $("#dlg");
+  if (!r.ok){ dlg.innerHTML = `<h2 style="margin:0 0 6px">Envoi refusé</h2><p class="sub">${esc(r.erreur || "erreur")}. Rien n'a été validé dans Hello Harel.</p><div class="bar"><button class="btn" id="hhok">Fermer</button></div>`; dlg.showModal(); dlg.onclick = e => { if (e.target.id === "hhok") dlg.close(); }; return; }
+  S.inv[cle] = r.inventaire; save();
+  dlg.innerHTML = `<h2 style="margin:0 0 6px">Brouillon créé dans Hello Harel</h2><p class="sub">Inventaire n° ${r.inventaire} : ${r.produits} produit(s), ${r.lignesModifiees} ligne(s) modifiée(s). Il reste à le valider dans Hello Harel.</p>
+    ${(r.ignores || []).length ? `<div class="card"><b>Non envoyés (${r.ignores.length})</b>${r.ignores.map(x => `<div class="row"><label>${esc(PID[x.pid]?.n || x.pid)}<em>${esc(x.f || "")} ${esc(x.motif)}</em></label></div>`).join("")}</div>` : ""}
+    <div class="bar"><a class="btn" href="${esc(r.url)}" target="_blank" rel="noopener">Ouvrir dans Hello Harel</a><button class="btn ghost" id="hhok">Fermer</button></div>`;
+  dlg.showModal(); dlg.onclick = e => { if (e.target.id === "hhok") dlg.close(); };
+}
 function ouvrirRm(id){
   const p = PID[id], dlg = $("#dlg"); let L = (S.rm[id] || []).map(x => ({...x}));
   const noms = [...new Set([...formats(p).map(f => f.n + " de " + fmt(f.q) + " " + UN[p.b]), p.pk].filter(Boolean))];
@@ -394,6 +436,7 @@ document.addEventListener("click", e => {
   else if (b.dataset.fx){ ouvrirFx(Number(b.dataset.fx)); }
   else if (b.dataset.allf){ const id = Number(b.dataset.allf); tousF.has(id) ? tousF.delete(id) : tousF.add(id); rendre(); }
   else if (b.dataset.ns){ const id = Number(b.dataset.ns); S.ns[id] = isNS(PID[id]) ? 0 : 1; S.nsPending[id] = 1; save(); envoyerNs(); toast(S.ns[id] ? "Rangé dans « Plus stockés »" : "Remis dans la liste"); rendre(); }
+  else if (b.id === "hhval"){ validerZone(); }
   else if (b.dataset.addf){ ouvrirXf(Number(b.dataset.addf)); }
   else if (b.dataset.rm){ ouvrirRm(Number(b.dataset.rm)); }
   else if (b.dataset.fo){ ouvrirFo(Number(b.dataset.fo)); }

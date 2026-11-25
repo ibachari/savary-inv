@@ -1,0 +1,8 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "inventaire-mp-hh",
+  // Compte de Paul (Workers Paid). Secrets : HAREL_USER, HAREL_PASSWORD (compte automatisation HH), APP_TOKEN.
+  "account_id": "5af4c1456f7ba35b8b3d640a4a43b7ec",
+  "main": "index.js",
+  "compatibility_date": "2026-09-01"
+}
