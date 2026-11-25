@@ -49,6 +49,7 @@ h1{font-family:"Barlow Condensed",sans-serif;font-size:26px;margin:16px 0 4px}
 .stb{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:2px 8px;border-radius:99px;color:#fff;margin-left:6px;vertical-align:middle}
 .stb.r{background:#c0392b}.stb.o{background:#e67e22}.stb.v{background:#2e8b57}
 .grp.prio{background:#fdecea;color:#c0392b;border-top-color:#c0392b!important;font-weight:700}.grp.prio.ok{background:#e8f5ee;color:#2e8b57;border-top-color:#2e8b57!important}
+.valbar{position:sticky;bottom:0;z-index:20;margin:0 -2px;padding:10px 0 calc(10px + env(safe-area-inset-bottom));background:var(--paper);border-top:2px solid var(--ink)}.valbar .btn{width:100%;min-height:48px;font-weight:700}
 .leg{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;margin:4px 0 8px}.p.low{border-left:5px solid var(--signal)}
 .p-h{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
 .p-n{font-weight:600}.p-c{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-2)}
@@ -299,7 +300,7 @@ function vueZone(){
     ${ajout ? `<label class="sels">Venant de <select id="sel-or"><option value="">Toutes les zones</option>${opts(ZONES.filter(z => z.c !== zone).map(z => [z.c, z.n]), origine)}</select></label>` : ""}</div>
   ${ajoutL.length ? `<div class="card"><b>Ajouter à cette zone</b>${ajoutL.map(p => `<div class="row"><label>${esc(p.n)}<em>${esc(p.c)} · ${esc(fo(p).join(", "))} · zone habituelle : ${p.z.join("/")}</em></label><button class="btn" data-add="${p.id}">Ajouter</button></div>`).join("")}</div>` : ""}
   ${corps || `<p class="sub">${b || nsL.length ? "Rien à afficher avec ce filtre." : "Aucun produit pour l'instant : utilisez « + Produit d'une autre zone »."}</p>`}
-  <div class="bar"><button class="btn" id="hhval">Valider cette zone dans Hello Harel (brouillon)</button></div>
+  <div class="bar valbar"><button class="btn" id="hhval">Valider cette zone dans Hello Harel (brouillon)</button></div>
   <dialog id="dlg"></dialog>`;
   const qi = $("#q"); if (avait && qi){ qi.focus(); try { qi.setSelectionRange(pos, pos); } catch (e) {} }
 }
